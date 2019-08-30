@@ -1,0 +1,32 @@
+<idea-plugin>
+    <id>com.whimthen.intelliJ.DataTransfer</id>
+    <name>Data Transfer</name>
+    <vendor email="whimthen@gmail.com" url="https://github.com/whimthen">WHIM THEN</vendor>
+
+    <description><![CDATA[
+      一键转移不同数据库中的数据, 包括创建表、插入数据等
+      一键转移不同数据库中的数据, 包括创建表、插入数据等
+    ]]></description>
+
+    <idea-version since-build="192.6"/>
+
+    <!--必须为企业版-->
+    <depends>com.intellij.modules.lang</depends>
+    <!--必须依赖Database Tool插件-->
+    <depends>com.intellij.database</depends>
+    <!--  -->
+    <depends>com.intellij.modules.database</depends>
+
+    <extensions defaultExtensionNs="com.intellij">
+        <!-- Add your extensions here -->
+    </extensions>
+
+    <actions>
+        <!-- Add your actions here -->
+        <action id="io.github.whimthen.transfer" class="com.whimthen.intelliJ.transfer.Transfer"
+                text="Data Transfer..." description="DataBase transfer">
+            <add-to-group group-id="ToolsBasicGroup" anchor="last"/>
+            <keyboard-shortcut keymap="$default" first-keystroke="shift meta alt T"/>
+        </action>
+    </actions>
+</idea-plugin>

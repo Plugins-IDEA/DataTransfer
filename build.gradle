@@ -1,0 +1,54 @@
+// 1.配置仓库
+//buildscript {
+//    //仓库地址配置
+//    repositories {
+//        mavenCentral()
+//        maven {
+//            url "https://oss.sonatype.org/content/repositories/snapshots/"
+//        }
+//        maven {
+//            url 'http://dl.bintray.com/jetbrains/intellij-plugin-service'
+//        }
+//
+//    }
+//    dependencies {
+//        classpath "org.jetbrains.intellij.plugins:gradle-intellij-plugin:0.3.0-SNAPSHOT"
+//    }
+//}
+
+plugins {
+    id 'java'
+    id 'org.jetbrains.intellij' version '0.4.10'
+}
+
+//2.1 插件配置
+// 这两个插件是必备
+apply plugin: 'idea'
+apply plugin: 'org.jetbrains.intellij'
+
+group 'com.whimthen.intelliJ'
+version '1.0-SNAPSHOT'
+
+sourceCompatibility = 1.8
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    testCompile group: 'junit', name: 'junit', version: '4.12'
+}
+
+// See https://github.com/JetBrains/gradle-intellij-plugin/
+intellij {
+    pluginName 'DataTransfer'
+    version 'IU-192.6262.58'
+    // 依赖的插件
+    plugins = ['DatabaseTools']
+}
+
+patchPluginXml {
+    changeNotes """
+      Add change notes here.<br>
+      <em>most HTML tags may be used</em>"""
+}
