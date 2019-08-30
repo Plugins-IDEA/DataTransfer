@@ -286,7 +286,7 @@
                               <text value="Lock source tables"/>
                             </properties>
                           </component>
-                          <component id="7cc64" class="javax.swing.JCheckBox" binding="createTargetDatabaseIfCheckBox" default-binding="true">
+                          <component id="7cc64" class="javax.swing.JCheckBox" binding="createTargetDatabaseIfNotExistCheckBox">
                             <constraints>
                               <grid row="12" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
                             </constraints>
@@ -295,7 +295,7 @@
                               <text value="Create target database if not exist"/>
                             </properties>
                           </component>
-                          <component id="41adc" class="javax.swing.JCheckBox" binding="useDDLFromSHOWCheckBox" default-binding="true">
+                          <component id="41adc" class="javax.swing.JCheckBox" binding="useDDLFromShowCreateTableCheckBox">
                             <constraints>
                               <grid row="13" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
                             </constraints>
@@ -311,7 +311,7 @@
                               <text value="Use single transaction"/>
                             </properties>
                           </component>
-                          <component id="cdee7" class="javax.swing.JCheckBox" binding="dropTargetObjectsBeforeCheckBox" default-binding="true">
+                          <component id="cdee7" class="javax.swing.JCheckBox" binding="dropTargetObjectsBeforeCreateCheckBox">
                             <constraints>
                               <grid row="15" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
                             </constraints>

@@ -16,6 +16,7 @@ import icons.DatabaseIcons;
 import org.apache.commons.lang.StringUtils;
 import org.jetbrains.annotations.NotNull;
 
+import javax.swing.AbstractButton;
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
@@ -32,9 +33,13 @@ import javax.swing.JTextField;
 import javax.swing.KeyStroke;
 import java.awt.Color;
 import java.awt.Dimension;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 public class DataTransferDialogWrapper extends JDialog {
@@ -53,6 +58,9 @@ public class DataTransferDialogWrapper extends JDialog {
 	private JButton           buttonCancel;
 	private JButton           startButton;
 	private JButton           newDataSourceButton;
+	private JButton           testTargetConnectionButton;
+	private JButton           optionsStartButton;
+	private JButton           testSourceConnectionButton;
 	private JRadioButton      upperCaseRadioButton;
 	private JRadioButton      lowerCaseRadioButton;
 	private JLabel            tableOptionsLabel;
@@ -61,10 +69,10 @@ public class DataTransferDialogWrapper extends JDialog {
 	private JCheckBox         convertObjectNameToCheckBox;
 	private JCheckBox         continueOnErrorCheckBox;
 	private JCheckBox         lockSourceTablesCheckBox;
-	private JCheckBox         createTargetDatabaseIfCheckBox;
-	private JCheckBox         useDDLFromSHOWCheckBox;
+	private JCheckBox         createTargetDatabaseIfNotExistCheckBox;
+	private JCheckBox         useDDLFromShowCreateTableCheckBox;
 	private JCheckBox         useSingleTransactionCheckBox;
-	private JCheckBox         dropTargetObjectsBeforeCheckBox;
+	private JCheckBox         dropTargetObjectsBeforeCreateCheckBox;
 	private JCheckBox         createTablesCheckBox;
 	private JCheckBox         includeIndexesCheckBox;
 	private JCheckBox         includeForeignKeyConstraintsCheckBox;
@@ -80,21 +88,18 @@ public class DataTransferDialogWrapper extends JDialog {
 	private JCheckBox         useExtendedInsertStatementsCheckbox;
 	private JCheckBox         useDelayedInsertStatementsCheckbox;
 	private JCheckBox         useBLOBCheckbox;
-	private JTextField   sourceHostTextField;
-	private JTextField   sourcePortTextField;
-	private JTextField   sourceUserTextField;
-	private JTextField   sourcePwdTextField;
-	private JTextField   sourceDbTextField;
-	private JTextField   targetHostTextField;
-	private JTextField   targetPortTextField;
-	private JTextField   targetUserTextField;
-	private JTextField   targetPwdTextField;
-	private JTextField   targetDbTextField;
-	private JTextArea    eventLogText;
-	private JProgressBar progressBar;
-	private JButton      testTargetConnectionButton;
-	private JButton      optionsStartButton;
-	private JButton      testSourceConnectionButton;
+	private JTextField        sourceHostTextField;
+	private JTextField        sourcePortTextField;
+	private JTextField        sourceUserTextField;
+	private JTextField        sourcePwdTextField;
+	private JTextField        sourceDbTextField;
+	private JTextField        targetHostTextField;
+	private JTextField        targetPortTextField;
+	private JTextField        targetUserTextField;
+	private JTextField        targetPwdTextField;
+	private JTextField        targetDbTextField;
+	private JTextArea         eventLogText;
+	private JProgressBar      progressBar;
 
 	private int tableTreeSelectionCount = 0;
 
@@ -145,28 +150,11 @@ public class DataTransferDialogWrapper extends JDialog {
 		recordOptionsLabel.setBackground(jbColor);
 		otherOptionsLabel.setBackground(jbColor);
 
-		createTablesCheckBox.addActionListener(e -> {
-			boolean isChecked = true;
-			if (!((JCheckBox) e.getSource()).isSelected()) {
-				isChecked = false;
-			}
-			addCreateTablesCheckboxListener(isChecked);
-		});
-		insertRecordsCheckbox.addActionListener(e -> {
-			boolean isChecked = true;
-			if (!((JCheckBox) e.getSource()).isSelected()) {
-				isChecked = false;
-			}
-			addInsertRecordsCheckboxListener(isChecked);
-		});
-		convertObjectNameToCheckBox.addActionListener(e -> {
-			boolean isEnable = false;
-			if (((JCheckBox) e.getSource()).isSelected()) {
-				isEnable = true;
-			}
-			lowerCaseRadioButton.setEnabled(isEnable);
-			upperCaseRadioButton.setEnabled(isEnable);
-		});
+		createTablesCheckBox.addActionListener(createTablesCheckboxListener());
+		insertRecordsCheckbox.addActionListener(insertRecordsCheckboxListener());
+		convertObjectNameToCheckBox.addActionListener(convertObjectNameToCheckboxListener());
+		addJCheckboxActionListener(getCreateTablesJCheckbox(), createTablesAllSelectedListener());
+		addJCheckboxActionListener(getInsertRecordsJCheckbox(), insertRecordsAllSelectedListener());
 
 		progressBar.setValue(20);
 
@@ -187,25 +175,83 @@ public class DataTransferDialogWrapper extends JDialog {
 			JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT);
 	}
 
-	private void addInsertRecordsCheckboxListener(boolean isChecked) {
-		insertRecordsCheckbox.setSelected(isChecked);
-		lockTargetTablesCheckbox.setSelected(isChecked);
-		useTransactionCheckbox.setSelected(isChecked);
-		useCompleteInsertStatementsCheckbox.setSelected(isChecked);
-		useExtendedInsertStatementsCheckbox.setSelected(isChecked);
-		useDelayedInsertStatementsCheckbox.setSelected(isChecked);
-		useBLOBCheckbox.setSelected(isChecked);
+	private ActionListener convertObjectNameToCheckboxListener() {
+		return (ActionEvent e) -> {
+			boolean isEnable = false;
+			if (((JCheckBox) e.getSource()).isSelected()) {
+				isEnable = true;
+			}
+			lowerCaseRadioButton.setEnabled(isEnable);
+			upperCaseRadioButton.setEnabled(isEnable);
+		};
 	}
 
-	private void addCreateTablesCheckboxListener(boolean isChecked) {
-		createTablesCheckBox.setSelected(isChecked);
-		includeIndexesCheckBox.setSelected(isChecked);
-		includeForeignKeyConstraintsCheckBox.setSelected(isChecked);
-		includeEngineTableTypeCheckBox.setSelected(isChecked);
-		includeCharacterSetCheckbox.setSelected(isChecked);
-		includeAutoIncrementCheckbox.setSelected(isChecked);
-		includeOtherTableOptionsCheckbox.setSelected(isChecked);
-		includeTriggersCheckbox.setSelected(isChecked);
+	private ActionListener insertRecordsCheckboxListener() {
+		List<JCheckBox> insertRecordsJCheckboxes = getInsertRecordsJCheckbox();
+		insertRecordsJCheckboxes.add(insertRecordsCheckbox);
+		return (ActionEvent e) -> setCheckboxChecked(isChecked(e), insertRecordsJCheckboxes);
+	}
+
+	private ActionListener createTablesCheckboxListener() {
+		List<JCheckBox> createTablesJCheckboxes = getCreateTablesJCheckbox();
+		createTablesJCheckboxes.add(createTablesCheckBox);
+		return (ActionEvent e) -> setCheckboxChecked(isChecked(e), createTablesJCheckboxes);
+	}
+
+	private void addJCheckboxActionListener(List<JCheckBox> checkBoxes, ActionListener listener) {
+		checkBoxes.forEach(checkbox -> checkbox.addActionListener(listener));
+	}
+
+	private ActionListener insertRecordsAllSelectedListener() {
+		return (ActionEvent e) -> {
+			List<JCheckBox> insertRecordsJCheckboxes = getInsertRecordsJCheckbox();
+			if (isAnyChecked(insertRecordsJCheckboxes)) {
+				insertRecordsCheckbox.setSelected(true);
+			} else if (isAllUnChecked(insertRecordsJCheckboxes)) {
+				insertRecordsCheckbox.setSelected(false);
+			}
+		};
+	}
+
+	private ActionListener createTablesAllSelectedListener() {
+		return (ActionEvent e) -> {
+			List<JCheckBox> createTablesJCheckboxes = getCreateTablesJCheckbox();
+			if (isAnyChecked(createTablesJCheckboxes)) {
+				createTablesCheckBox.setSelected(true);
+			} else if (isAllUnChecked(createTablesJCheckboxes)) {
+				createTablesCheckBox.setSelected(false);
+			}
+		};
+	}
+
+	private List<JCheckBox> getInsertRecordsJCheckbox() {
+		return new ArrayList<>(Arrays.asList(lockTargetTablesCheckbox, useTransactionCheckbox, useCompleteInsertStatementsCheckbox,
+			useExtendedInsertStatementsCheckbox, useDelayedInsertStatementsCheckbox, useBLOBCheckbox));
+	}
+
+	private List<JCheckBox> getCreateTablesJCheckbox() {
+		return new ArrayList<>(Arrays.asList(includeIndexesCheckBox, includeForeignKeyConstraintsCheckBox, includeEngineTableTypeCheckBox,
+			includeCharacterSetCheckbox, includeAutoIncrementCheckbox, includeOtherTableOptionsCheckbox, includeTriggersCheckbox));
+	}
+
+	private boolean isAnyChecked(List<JCheckBox> checkBoxes) {
+		return checkBoxes.stream().anyMatch(AbstractButton::isSelected);
+	}
+
+	private boolean isAllUnChecked(List<JCheckBox> checkBoxes) {
+		return checkBoxes.stream().noneMatch(AbstractButton::isSelected);
+	}
+
+	private void setCheckboxChecked(boolean isChecked, List<JCheckBox> checkBoxes) {
+		checkBoxes.forEach(checkBox -> checkBox.setSelected(isChecked));
+	}
+
+	private boolean isChecked(ActionEvent e) {
+		boolean isChecked = true;
+		if (!((JCheckBox) e.getSource()).isSelected()) {
+			isChecked = false;
+		}
+		return isChecked;
 	}
 
 	private void addCheckboxTreeListener(CheckboxTree checkboxTree, CheckedTreeNode root) {
