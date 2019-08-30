@@ -15,7 +15,6 @@ import com.intellij.ui.CheckedTreeNode;
 import com.intellij.ui.JBColor;
 import com.intellij.ui.SimpleTextAttributes;
 import com.intellij.util.ui.JBUI;
-import com.intellij.util.ui.tree.TreeUtil;
 import icons.DatabaseIcons;
 
 import javax.swing.JComboBox;
@@ -40,55 +39,12 @@ public class UiUtil {
 		return selectConnection.equals(item) || selectDataBase.equals(item);
 	}
 
-	public static CheckboxTree createRecordOptionsCheckboxTree() {
-		CheckedTreeNode recordOptionsRoot         = new CheckedTreeNode("Insert records");
-		CheckboxTree    recordOptionsCheckboxTree = createCheckboxTree(getStringRenderer(), recordOptionsRoot);
-		addCheckedNode2RecordOptionsPaneRoot(recordOptionsRoot);
-		recordOptionsCheckboxTree.setRootVisible(true);
-		recordOptionsCheckboxTree.setEnabled(true);
-		recordOptionsCheckboxTree.setVisible(true);
-		recordOptionsCheckboxTree.setShowsRootHandles(false);
-		TreeUtil.expandAll(recordOptionsCheckboxTree);
-		return recordOptionsCheckboxTree;
-	}
-
-	public static CheckboxTree createTableOptionsCheckboxTree() {
-		CheckedTreeNode tableOptionsRoot         = new CheckedTreeNode("Create tables");
-		CheckboxTree    tableOptionsCheckboxTree = createCheckboxTree(getStringRenderer(), tableOptionsRoot);
-		addCheckedNode2TableOptionsPaneRoot(tableOptionsRoot);
-		tableOptionsCheckboxTree.setRootVisible(true);
-		tableOptionsCheckboxTree.setEnabled(true);
-		tableOptionsCheckboxTree.setVisible(true);
-		tableOptionsCheckboxTree.setShowsRootHandles(false);
-		TreeUtil.expandAll(tableOptionsCheckboxTree);
-		tableOptionsCheckboxTree.setBackground(new JBColor(getOpacity0(), getOpacity0()));
-		return tableOptionsCheckboxTree;
-	}
-
 	public static CheckboxTree createCheckboxTree(CheckboxTree.CheckboxTreeCellRenderer renderer, CheckedTreeNode root) {
 		CheckboxTree checkboxTree = new CheckboxTree(renderer, root,
 			new CheckboxTreeBase.CheckPolicy(true,
 				true, true, true));
 		checkboxTree.setBackground(new JBColor(new Color(0XECECEC), new Color(0XECECEC)));
 		return checkboxTree;
-	}
-
-	public static void addCheckedNode2RecordOptionsPaneRoot(CheckedTreeNode tableOptionsRoot) {
-		addStringCheckboxNode2Root("Lock target tables", tableOptionsRoot, false);
-		addStringCheckboxNode2Root("Use transaction", tableOptionsRoot);
-		addStringCheckboxNode2Root("Use complete insert statements", tableOptionsRoot, false);
-		addStringCheckboxNode2Root("Use extended insert statements", tableOptionsRoot);
-		addStringCheckboxNode2Root("Use delayed insert statements", tableOptionsRoot, false);
-		addStringCheckboxNode2Root("Use hexadecimal format for BLOB", tableOptionsRoot);
-	}
-
-	public static void addCheckedNode2TableOptionsPaneRoot(CheckedTreeNode tableOptionsRoot) {
-		addStringCheckboxNode2Root("Include indexes", tableOptionsRoot);
-		addStringCheckboxNode2Root("Include foreign key constraints", tableOptionsRoot);
-		addStringCheckboxNode2Root("Include engine/table type", tableOptionsRoot);
-		addStringCheckboxNode2Root("Include character set", tableOptionsRoot);
-		addStringCheckboxNode2Root("Include auto increment", tableOptionsRoot);
-		addStringCheckboxNode2Root("Include other table options", tableOptionsRoot, false);
 	}
 
 	public static Color getOpacity0() {

@@ -42,8 +42,6 @@ public class DataTransferDialogWrapper extends JDialog {
 	private JPanel            contentPane;
 	private JPanel            optionsPanel;
 	private JPanel            selectionPane;
-	private JPanel            recordOptionsPane;
-	private JPanel            tableOptionsPane;
 	private JTabbedPane       optionsTabbedPane;
 	private JTabbedPane       dataSourceTabbedPane;
 	private JScrollPane       dataBaseObjectsPane;
@@ -55,22 +53,11 @@ public class DataTransferDialogWrapper extends JDialog {
 	private JButton           buttonCancel;
 	private JButton           startButton;
 	private JButton           newDataSourceButton;
-	private JButton           button1;
-	private JButton           button2;
 	private JRadioButton      upperCaseRadioButton;
 	private JRadioButton      lowerCaseRadioButton;
 	private JLabel            tableOptionsLabel;
 	private JLabel            recordOptionsLabel;
-	private JLabel            sourceHostLabel;
-	private JLabel            sourceUserLabel;
-	private JLabel            sourcePortLabel;
-	private JLabel            sourcePwdLabel;
-	private JLabel            sourceDbLabel;
-	private JLabel            targetHostLabel;
-	private JLabel            targetPortLabel;
-	private JLabel            targetUserLabel;
-	private JLabel            targetPwdLabel;
-	private JLabel            targetDbLabel;
+	private JLabel            otherOptionsLabel;
 	private JCheckBox         convertObjectNameToCheckBox;
 	private JCheckBox         continueOnErrorCheckBox;
 	private JCheckBox         lockSourceTablesCheckBox;
@@ -78,24 +65,42 @@ public class DataTransferDialogWrapper extends JDialog {
 	private JCheckBox         useDDLFromSHOWCheckBox;
 	private JCheckBox         useSingleTransactionCheckBox;
 	private JCheckBox         dropTargetObjectsBeforeCheckBox;
-	private JTextField        sourceHostTextField;
-	private JTextField        sourcePortTextField;
-	private JTextField        sourceUserTextField;
-	private JTextField        sourcePwdTextField;
-	private JTextField        sourceDbTextField;
-	private JTextField        targetHostTextField;
-	private JTextField        targetPortTextField;
-	private JTextField        targetUserTextField;
-	private JTextField        targetPwdTextField;
-	private JTextField        targetDbTextField;
-	private JTextArea         eventLogText;
-	private JProgressBar      progressBar;
+	private JCheckBox         createTablesCheckBox;
+	private JCheckBox         includeIndexesCheckBox;
+	private JCheckBox         includeForeignKeyConstraintsCheckBox;
+	private JCheckBox         includeEngineTableTypeCheckBox;
+	private JCheckBox         includeCharacterSetCheckbox;
+	private JCheckBox         includeAutoIncrementCheckbox;
+	private JCheckBox         includeOtherTableOptionsCheckbox;
+	private JCheckBox         includeTriggersCheckbox;
+	private JCheckBox         insertRecordsCheckbox;
+	private JCheckBox         lockTargetTablesCheckbox;
+	private JCheckBox         useTransactionCheckbox;
+	private JCheckBox         useCompleteInsertStatementsCheckbox;
+	private JCheckBox         useExtendedInsertStatementsCheckbox;
+	private JCheckBox         useDelayedInsertStatementsCheckbox;
+	private JCheckBox         useBLOBCheckbox;
+	private JTextField   sourceHostTextField;
+	private JTextField   sourcePortTextField;
+	private JTextField   sourceUserTextField;
+	private JTextField   sourcePwdTextField;
+	private JTextField   sourceDbTextField;
+	private JTextField   targetHostTextField;
+	private JTextField   targetPortTextField;
+	private JTextField   targetUserTextField;
+	private JTextField   targetPwdTextField;
+	private JTextField   targetDbTextField;
+	private JTextArea    eventLogText;
+	private JProgressBar progressBar;
+	private JButton      testTargetConnectionButton;
+	private JButton      optionsStartButton;
+	private JButton      testSourceConnectionButton;
 
 	private int tableTreeSelectionCount = 0;
 
 	private DataTransferDialogWrapper(Project project) {
 		setTitle("Data Transfer");
-		contentPane.setPreferredSize(new Dimension(800, 700));
+		contentPane.setPreferredSize(new Dimension(800, 750));
 		setContentPane(contentPane);
 		setModal(true);
 		getRootPane().setDefaultButton(buttonOK);
@@ -121,6 +126,8 @@ public class DataTransferDialogWrapper extends JDialog {
 		addTables2Tree(tableTreeRoot, tableCheckboxTree);
 		sourceDbComboBox.addItemListener(e -> addTables2Tree(tableTreeRoot, tableCheckboxTree));
 
+		GlobalUtil.onlyInputNumber(sourcePortTextField, targetPortTextField);
+
 		addCheckboxTreeListener(tableCheckboxTree, tableTreeRoot);
 		tableCheckboxTree.setRootVisible(true);
 		tableCheckboxTree.setEnabled(true);
@@ -132,12 +139,26 @@ public class DataTransferDialogWrapper extends JDialog {
 		newDataSourceButton.setIcon(DatabaseIcons.Dbms);
 		newDataSourceButton.addActionListener(e -> UiUtil.showAddDataSourceDialog(project, sourceConnComboBox));
 
-		Color color = new Color(48, 147, 253, 100);
-		tableOptionsLabel.setBackground(new JBColor(color, color));
+		Color   color   = new Color(203, 217, 244, 80);
+		JBColor jbColor = new JBColor(color, color);
+		tableOptionsLabel.setBackground(jbColor);
+		recordOptionsLabel.setBackground(jbColor);
+		otherOptionsLabel.setBackground(jbColor);
 
-		tableOptionsPane.add(UiUtil.createTableOptionsCheckboxTree());
-		recordOptionsPane.add(UiUtil.createRecordOptionsCheckboxTree());
-
+		createTablesCheckBox.addActionListener(e -> {
+			boolean isChecked = true;
+			if (!((JCheckBox) e.getSource()).isSelected()) {
+				isChecked = false;
+			}
+			addCreateTablesCheckboxListener(isChecked);
+		});
+		insertRecordsCheckbox.addActionListener(e -> {
+			boolean isChecked = true;
+			if (!((JCheckBox) e.getSource()).isSelected()) {
+				isChecked = false;
+			}
+			addInsertRecordsCheckboxListener(isChecked);
+		});
 		convertObjectNameToCheckBox.addActionListener(e -> {
 			boolean isEnable = false;
 			if (((JCheckBox) e.getSource()).isSelected()) {
@@ -164,6 +185,27 @@ public class DataTransferDialogWrapper extends JDialog {
 		contentPane.registerKeyboardAction(e -> onCancel(),
 			KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0),
 			JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT);
+	}
+
+	private void addInsertRecordsCheckboxListener(boolean isChecked) {
+		insertRecordsCheckbox.setSelected(isChecked);
+		lockTargetTablesCheckbox.setSelected(isChecked);
+		useTransactionCheckbox.setSelected(isChecked);
+		useCompleteInsertStatementsCheckbox.setSelected(isChecked);
+		useExtendedInsertStatementsCheckbox.setSelected(isChecked);
+		useDelayedInsertStatementsCheckbox.setSelected(isChecked);
+		useBLOBCheckbox.setSelected(isChecked);
+	}
+
+	private void addCreateTablesCheckboxListener(boolean isChecked) {
+		createTablesCheckBox.setSelected(isChecked);
+		includeIndexesCheckBox.setSelected(isChecked);
+		includeForeignKeyConstraintsCheckBox.setSelected(isChecked);
+		includeEngineTableTypeCheckBox.setSelected(isChecked);
+		includeCharacterSetCheckbox.setSelected(isChecked);
+		includeAutoIncrementCheckbox.setSelected(isChecked);
+		includeOtherTableOptionsCheckbox.setSelected(isChecked);
+		includeTriggersCheckbox.setSelected(isChecked);
 	}
 
 	private void addCheckboxTreeListener(CheckboxTree checkboxTree, CheckedTreeNode root) {
