@@ -106,9 +106,9 @@ public class DataTransferDialogWrapper extends JDialog {
 	private JPasswordField    targetPwdTextField;
 	private JTextArea         eventLogArea;
 	private JProgressBar      progressBar;
-	private CheckedTreeNode   tableTreeRoot = new CheckedTreeNode();
 
-	private int tableTreeSelectionCount = 0;
+	private CheckedTreeNode tableTreeRoot           = new CheckedTreeNode();
+	private int             tableTreeSelectionCount = 0;
 
 	private DataTransferDialogWrapper(Project project) {
 		setTitle("Data Transfer");
