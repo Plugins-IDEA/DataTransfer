@@ -15,22 +15,22 @@ public class TransferModel {
 
 	// Select Connection
 	private String sourceConn;
-	private String sourceDb;
 	private String targetConn;
-	private String targetDb;
 	private List<DasTable> tables;
+
+	// Select & Options common
+	private String sourceDb;
+	private String targetDb;
 
 	// Options Connection
 	private String sourceHost;
 	private String sourcePort;
 	private String sourceUser;
 	private String sourcePwd;
-	private String optionsSourceDb;
 	private String targetHost;
 	private String targetPort;
 	private String targetUser;
 	private String targetPwd;
-	private String optionsTargetDb;
 
 	// Table Options
 	private boolean createTables;
@@ -143,14 +143,6 @@ public class TransferModel {
 		this.sourcePwd = sourcePwd;
 	}
 
-	public String getOptionsSourceDb() {
-		return optionsSourceDb;
-	}
-
-	public void setOptionsSourceDb(String optionsSourceDb) {
-		this.optionsSourceDb = optionsSourceDb;
-	}
-
 	public String getTargetHost() {
 		return targetHost;
 	}
@@ -181,14 +173,6 @@ public class TransferModel {
 
 	public void setTargetPwd(String targetPwd) {
 		this.targetPwd = targetPwd;
-	}
-
-	public String getOptionsTargetDb() {
-		return optionsTargetDb;
-	}
-
-	public void setOptionsTargetDb(String optionsTargetDb) {
-		this.optionsTargetDb = optionsTargetDb;
 	}
 
 	public boolean isCreateTables() {

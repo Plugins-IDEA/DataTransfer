@@ -231,12 +231,12 @@ public class DataTransferDialogWrapper extends JDialog {
 			model.setSourcePort(sourcePortTextField.getText());
 			model.setSourceUser(sourceUserTextField.getText());
 			model.setSourcePwd(sourcePwdTextField.getText());
-			model.setOptionsSourceDb(sourceDbTextField.getText());
+			model.setSourceDb(sourceDbTextField.getText());
 			model.setTargetHost(targetHostTextField.getText());
 			model.setTargetPort(targetPortTextField.getText());
 			model.setTargetUser(targetUserTextField.getText());
 			model.setTargetPwd(targetPwdTextField.getText());
-			model.setOptionsTargetDb(targetDbTextField.getText());
+			model.setTargetDb(targetDbTextField.getText());
 			setModelOtherProperties(model);
 			DataBaseOperator.transfer(model, eventLogArea);
 		};
