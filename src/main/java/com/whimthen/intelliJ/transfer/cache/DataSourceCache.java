@@ -26,9 +26,6 @@ public class DataSourceCache {
 	private static ConcurrentHashMap<String, List<? extends DasTable>> tableCache = new ConcurrentHashMap<>();
 
 	public static void add(@NotNull DbDataSource dataSource) {
-		if (dataSourceCache.containsKey(dataSource.getName())) {
-			return;
-		}
 		JBIterable<? extends DasNamespace> schemas = DasUtil.getSchemas(dataSource);
 		schemas.forEach(schema -> {
 			schemaCache.put(schema.getName(), schema);

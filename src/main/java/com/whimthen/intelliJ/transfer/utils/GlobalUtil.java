@@ -19,6 +19,10 @@ public class GlobalUtil {
 		}
 	}
 
+	public static String getLineSeparator() {
+		return System.getProperty("line.separator");
+	}
+
 	public static void onlyInputNumber(JTextField... textFields) {
 		Stream.of(textFields).forEach(textField -> {
 			textField.addKeyListener(new KeyAdapter(){

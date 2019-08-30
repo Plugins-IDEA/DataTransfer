@@ -17,14 +17,16 @@ public class ThreadContainer {
 	private ThreadContainer() {
 		ExecutorService service = Executors.newSingleThreadExecutor();
 		this.queue = new LinkedBlockingQueue<>();
-		while (true) {
-			try {
-				RunnableFunction function = queue.take();
-				service.submit(function::run);
-			} catch (Exception e) {
-				e.printStackTrace();
+		service.submit(() -> {
+			while (true) {
+				try {
+					RunnableFunction function = queue.take();
+					function.run();
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
 			}
-		}
+		});
 	}
 
 	private static class ThreadContainerHolder {

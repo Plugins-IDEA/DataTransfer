@@ -51,9 +51,10 @@ public class UiUtil {
 		return new Color(48, 147, 253, 0);
 	}
 
-	public static void setJScrollVerticalBar(JScrollPane jScrollBar) {
+	public static void setJScrollBar(JScrollPane jScrollBar) {
 		jScrollBar.setBorder(JBUI.Borders.empty());
 		jScrollBar.setVerticalScrollBar(getScrollBar());
+		jScrollBar.setHorizontalScrollBar(getScrollBar());
 	}
 
 	public static void addStringCheckboxNode2Root(String text, CheckedTreeNode root) {
@@ -115,7 +116,7 @@ public class UiUtil {
 		// 设置背景颜色
 		jScrollBar.setBackground(new JBColor(new Color(0XECECEC), new Color(0XECECEC)));
 		// 设置滚轮速度
-		jScrollBar.setUnitIncrement(5);
+		jScrollBar.setUnitIncrement(3);
 		// 设置滚动条宽度
 		jScrollBar.setPreferredSize(new Dimension(10, 0));
 		return jScrollBar;

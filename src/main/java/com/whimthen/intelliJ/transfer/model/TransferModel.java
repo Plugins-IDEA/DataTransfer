@@ -1,5 +1,7 @@
 package com.whimthen.intelliJ.transfer.model;
 
+import com.intellij.database.model.DasTable;
+
 import java.util.List;
 
 /**
@@ -9,14 +11,14 @@ import java.util.List;
 public class TransferModel {
 
 	// 1-select | 2-options
-	private int type;
+	private StartType type;
 
 	// Select Connection
 	private String sourceConn;
 	private String sourceDb;
 	private String targetConn;
 	private String targetDb;
-	private List<String> tables;
+	private List<DasTable> tables;
 
 	// Options Connection
 	private String sourceHost;
@@ -50,7 +52,6 @@ public class TransferModel {
 	private boolean useBLOB;
 
 	// Convert object name to
-	private boolean convertObjectNameTo;
 	private boolean lowerCase;
 	private boolean upperCase;
 
@@ -62,11 +63,11 @@ public class TransferModel {
 	private boolean useSingleTransaction;
 	private boolean dropTargetObjectsBeforeCreate;
 
-	public int getType() {
+	public StartType getType() {
 		return type;
 	}
 
-	public void setType(int type) {
+	public void setType(StartType type) {
 		this.type = type;
 	}
 
@@ -102,11 +103,11 @@ public class TransferModel {
 		this.targetDb = targetDb;
 	}
 
-	public List<String> getTables() {
+	public List<DasTable> getTables() {
 		return tables;
 	}
 
-	public void setTables(List<String> tables) {
+	public void setTables(List<DasTable> tables) {
 		this.tables = tables;
 	}
 
@@ -308,14 +309,6 @@ public class TransferModel {
 
 	public void setUseBLOB(boolean useBLOB) {
 		this.useBLOB = useBLOB;
-	}
-
-	public boolean isConvertObjectNameTo() {
-		return convertObjectNameTo;
-	}
-
-	public void setConvertObjectNameTo(boolean convertObjectNameTo) {
-		this.convertObjectNameTo = convertObjectNameTo;
 	}
 
 	public boolean isLowerCase() {

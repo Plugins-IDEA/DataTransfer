@@ -10,6 +10,11 @@ import com.intellij.ui.CheckedTreeNode;
 import com.intellij.ui.JBColor;
 import com.intellij.util.containers.JBIterable;
 import com.whimthen.intelliJ.transfer.cache.DataSourceCache;
+import com.whimthen.intelliJ.transfer.db.DataBaseOperator;
+import com.whimthen.intelliJ.transfer.model.DataBaseInfo;
+import com.whimthen.intelliJ.transfer.model.StartType;
+import com.whimthen.intelliJ.transfer.model.TestConnectionType;
+import com.whimthen.intelliJ.transfer.model.TransferModel;
 import com.whimthen.intelliJ.transfer.utils.GlobalUtil;
 import com.whimthen.intelliJ.transfer.utils.UiUtil;
 import icons.DatabaseIcons;
@@ -24,6 +29,7 @@ import javax.swing.JComponent;
 import javax.swing.JDialog;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
+import javax.swing.JPasswordField;
 import javax.swing.JProgressBar;
 import javax.swing.JRadioButton;
 import javax.swing.JScrollPane;
@@ -41,16 +47,15 @@ import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Enumeration;
 import java.util.List;
 
 public class DataTransferDialogWrapper extends JDialog {
 
 	private JPanel            contentPane;
-	private JPanel            optionsPanel;
-	private JPanel            selectionPane;
 	private JTabbedPane       optionsTabbedPane;
-	private JTabbedPane       dataSourceTabbedPane;
 	private JScrollPane       dataBaseObjectsPane;
+	private JScrollPane       eventLogScrollPane;
 	private JComboBox<String> targetConnComboBox;
 	private JComboBox<String> targetDbComboBox;
 	private JComboBox<String> sourceConnComboBox;
@@ -92,15 +97,16 @@ public class DataTransferDialogWrapper extends JDialog {
 	private JTextField        sourceHostTextField;
 	private JTextField        sourcePortTextField;
 	private JTextField        sourceUserTextField;
-	private JTextField        sourcePwdTextField;
 	private JTextField        sourceDbTextField;
 	private JTextField        targetHostTextField;
 	private JTextField        targetPortTextField;
 	private JTextField        targetUserTextField;
-	private JTextField        targetPwdTextField;
 	private JTextField        targetDbTextField;
-	private JTextArea         eventLogText;
+	private JPasswordField    sourcePwdTextField;
+	private JPasswordField    targetPwdTextField;
+	private JTextArea         eventLogArea;
 	private JProgressBar      progressBar;
+	private CheckedTreeNode   tableTreeRoot = new CheckedTreeNode();
 
 	private int tableTreeSelectionCount = 0;
 
@@ -111,12 +117,11 @@ public class DataTransferDialogWrapper extends JDialog {
 		setModal(true);
 		getRootPane().setDefaultButton(buttonOK);
 		setMinimumSize(new Dimension(800, 765));
-		Toolkit defaultToolkit = Toolkit.getDefaultToolkit();
-		Dimension screenSize   = defaultToolkit.getScreenSize();
+		Toolkit   defaultToolkit = Toolkit.getDefaultToolkit();
+		Dimension screenSize     = defaultToolkit.getScreenSize();
 		setLocation(Double.valueOf(screenSize.getWidth()).intValue() / 2 - 400, Double.valueOf(screenSize.getHeight()).intValue() / 2 - 370);
 
-		CheckedTreeNode tableTreeRoot     = new CheckedTreeNode();
-		CheckboxTree    tableCheckboxTree = UiUtil.createCheckboxTree(UiUtil.getTableRenderer(), tableTreeRoot);
+		CheckboxTree tableCheckboxTree = UiUtil.createCheckboxTree(UiUtil.getTableRenderer(), tableTreeRoot);
 //		CheckedTreeNode viewsTreeRoot     = new CheckedTreeNode();
 //		CheckboxTree    viewsCheckboxTree = UiUtil.createCheckboxTree(UiUtil.getTableRenderer(), viewsTreeRoot);
 
@@ -133,8 +138,13 @@ public class DataTransferDialogWrapper extends JDialog {
 			addDbComboBoxItem(targetConnComboBox, targetDbComboBox);
 		});
 
-		addTables2Tree(tableTreeRoot, tableCheckboxTree);
-		sourceDbComboBox.addItemListener(e -> addTables2Tree(tableTreeRoot, tableCheckboxTree));
+		startButton.addActionListener(startListener());
+		optionsStartButton.addActionListener(optionsStartListener());
+		testSourceConnectionButton.addActionListener(testConnectionListener(TestConnectionType.SOURCE));
+		testTargetConnectionButton.addActionListener(testConnectionListener(TestConnectionType.TARGET));
+
+		addTables2Tree(tableCheckboxTree);
+		sourceDbComboBox.addItemListener(e -> addTables2Tree(tableCheckboxTree));
 
 		GlobalUtil.onlyInputNumber(sourcePortTextField, targetPortTextField);
 
@@ -144,13 +154,13 @@ public class DataTransferDialogWrapper extends JDialog {
 		tableCheckboxTree.setShowsRootHandles(true);
 		tableCheckboxTree.setVisible(true);
 		dataBaseObjectsPane.setViewportView(tableCheckboxTree);
-		UiUtil.setJScrollVerticalBar(dataBaseObjectsPane);
+		UiUtil.setJScrollBar(dataBaseObjectsPane);
+		UiUtil.setJScrollBar(eventLogScrollPane);
 
 		newDataSourceButton.setIcon(DatabaseIcons.Dbms);
 		newDataSourceButton.addActionListener(e -> UiUtil.showAddDataSourceDialog(project, sourceConnComboBox));
 
-		Color   color   = new Color(203, 217, 244, 80);
-		JBColor jbColor = new JBColor(color, color);
+		JBColor jbColor = new JBColor(new Color(203, 217, 244, 80), new Color(203, 217, 244, 80));
 		tableOptionsLabel.setBackground(jbColor);
 		recordOptionsLabel.setBackground(jbColor);
 		otherOptionsLabel.setBackground(jbColor);
@@ -178,6 +188,114 @@ public class DataTransferDialogWrapper extends JDialog {
 		contentPane.registerKeyboardAction(e -> onCancel(),
 			KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0),
 			JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT);
+	}
+
+	private ActionListener testConnectionListener(TestConnectionType connectionType) {
+		return (ActionEvent e) -> {
+			String host, port, user, password, database;
+			if (connectionType.equals(TestConnectionType.SOURCE)) {
+				host = sourceHostTextField.getText();
+				port = sourcePortTextField.getText();
+				user = sourceUserTextField.getText();
+				password = sourcePwdTextField.getText();
+				database = sourceDbTextField.getText();
+			} else {
+				host = targetHostTextField.getText();
+				port = targetPortTextField.getText();
+				user = targetUserTextField.getText();
+				password = targetPwdTextField.getText();
+				database = targetDbTextField.getText();
+			}
+			DataBaseInfo info = new DataBaseInfo();
+			info.setHost(host);
+			info.setPort(port);
+			info.setUser(user);
+			info.setPassword(password);
+			info.setDatabase(database);
+			boolean isSuccess = DataBaseOperator.testConnection(info);
+			// TODO 暂时弹窗提示测试连接是否成功, 后续改为按钮前面显示, 更为直观
+			if (!isSuccess) {
+				Messages.showErrorDialog("The Database connect fail", "Test Connection Result");
+			} else {
+				Messages.showMessageDialog("Connect Successful!", "Test Connection Result", Messages.getInformationIcon());
+			}
+		};
+	}
+
+	private ActionListener optionsStartListener() {
+		return (ActionEvent e) -> {
+			selectEventLogPanel();
+			TransferModel model = new TransferModel();
+			model.setType(StartType.OPTIONS);
+			model.setSourceHost(sourceHostTextField.getText());
+			model.setSourcePort(sourcePortTextField.getText());
+			model.setSourceUser(sourceUserTextField.getText());
+			model.setSourcePwd(sourcePwdTextField.getText());
+			model.setOptionsSourceDb(sourceDbTextField.getText());
+			model.setTargetHost(targetHostTextField.getText());
+			model.setTargetPort(targetPortTextField.getText());
+			model.setTargetUser(targetUserTextField.getText());
+			model.setTargetPwd(targetPwdTextField.getText());
+			model.setOptionsTargetDb(targetDbTextField.getText());
+			setModelOtherProperties(model);
+			DataBaseOperator.transfer(model, eventLogArea);
+		};
+	}
+
+	private ActionListener startListener() {
+		return (ActionEvent e) -> {
+			selectEventLogPanel();
+			TransferModel model = new TransferModel();
+			model.setType(StartType.SELECT);
+			model.setSourceConn((String) sourceConnComboBox.getSelectedItem());
+			model.setTargetConn((String) targetConnComboBox.getSelectedItem());
+			model.setSourceDb((String) sourceDbComboBox.getSelectedItem());
+			model.setTargetDb((String) targetDbComboBox.getSelectedItem());
+			Enumeration    children = tableTreeRoot.children();
+			List<DasTable> tables   = new ArrayList<>();
+			while (children.hasMoreElements()) {
+				CheckedTreeNode treeNode = (CheckedTreeNode) children.nextElement();
+				if (treeNode.isChecked() && treeNode.isEnabled()) {
+					DasTable table = (DasTable) treeNode.getUserObject();
+					tables.add(table);
+				}
+			}
+			model.setTables(tables);
+			setModelOtherProperties(model);
+			DataBaseOperator.transfer(model, eventLogArea);
+		};
+	}
+
+	private void setModelOtherProperties(TransferModel model) {
+		boolean createTablesCheckBoxSelected = createTablesCheckBox.isSelected();
+		model.setCreateTables(createTablesCheckBoxSelected);
+		if (createTablesCheckBoxSelected) {
+			model.setIncludeIndexes(includeIndexesCheckBox.isSelected());
+			model.setIncludeForeignKeyConstraints(includeForeignKeyConstraintsCheckBox.isSelected());
+			model.setIncludeEngineTableType(includeEngineTableTypeCheckBox.isSelected());
+			model.setIncludeCharacterSet(includeCharacterSetCheckbox.isSelected());
+			model.setIncludeAutoIncrement(includeAutoIncrementCheckbox.isSelected());
+			model.setIncludeOtherTableOptions(includeOtherTableOptionsCheckbox.isSelected());
+			model.setIncludeTriggers(includeTriggersCheckbox.isSelected());
+		}
+		boolean insertRecordsCheckboxSelected = insertRecordsCheckbox.isSelected();
+		model.setInsertRecords(insertRecordsCheckboxSelected);
+		if (insertRecordsCheckboxSelected) {
+			model.setLockTargetTables(lockTargetTablesCheckbox.isSelected());
+			model.setUseTransaction(useTransactionCheckbox.isSelected());
+			model.setUseCompleteInsertStatements(useCompleteInsertStatementsCheckbox.isSelected());
+			model.setUseExtendedInsertStatements(useExtendedInsertStatementsCheckbox.isSelected());
+			model.setUseDelayedInsertStatements(useDelayedInsertStatementsCheckbox.isSelected());
+			model.setUseBLOB(useBLOBCheckbox.isSelected());
+		}
+		model.setLowerCase(lowerCaseRadioButton.isSelected());
+		model.setUpperCase(upperCaseRadioButton.isSelected());
+		model.setContinueOnError(continueOnErrorCheckBox.isSelected());
+		model.setLockSourceTables(lockSourceTablesCheckBox.isSelected());
+		model.setCreateTargetDatabaseIfNotExist(createTargetDatabaseIfNotExistCheckBox.isSelected());
+		model.setUseDDLFromShowCreateTable(useDDLFromShowCreateTableCheckBox.isSelected());
+		model.setUseSingleTransaction(useSingleTransactionCheckBox.isSelected());
+		model.setDropTargetObjectsBeforeCreate(dropTargetObjectsBeforeCreateCheckBox.isSelected());
 	}
 
 	private ActionListener convertObjectNameToCheckboxListener() {
@@ -279,13 +397,13 @@ public class DataTransferDialogWrapper extends JDialog {
 		});
 	}
 
-	private void addTables2Tree(CheckedTreeNode root, CheckboxTree checkboxTree) {
+	private void addTables2Tree(CheckboxTree checkboxTree) {
 		String db = (String) sourceDbComboBox.getSelectedItem();
 		if (StringUtils.isNotEmpty(db)) {
 			List<? extends DasTable> tables = DataSourceCache.getTables(db);
 			tableTreeSelectionCount = tables.size();
-			root.setUserObject(UiUtil.getTableRootNodeText(tables.size(), tables.size()));
-			UiUtil.addTables(tables, root);
+			tableTreeRoot.setUserObject(UiUtil.getTableRootNodeText(tables.size(), tables.size()));
+			UiUtil.addTables(tables, tableTreeRoot);
 			checkboxTree.updateUI();
 		}
 	}
@@ -307,9 +425,11 @@ public class DataTransferDialogWrapper extends JDialog {
 		}
 	}
 
-	private void onOK() {
-		// add your code here
+	private void selectEventLogPanel() {
 		optionsTabbedPane.setSelectedIndex(optionsTabbedPane.getTabCount() - 1);
+	}
+
+	private void onOK() {
 		String selectedItem  = (String) sourceConnComboBox.getSelectedItem();
 		Object selectedItem1 = targetConnComboBox.getSelectedItem();
 		Messages.showMessageDialog("source: " + selectedItem + ", target: " + selectedItem1, "Connection", Messages.getInformationIcon());
@@ -317,7 +437,6 @@ public class DataTransferDialogWrapper extends JDialog {
 	}
 
 	private void onCancel() {
-		// add your code here if necessary
 		dispose();
 	}
 
