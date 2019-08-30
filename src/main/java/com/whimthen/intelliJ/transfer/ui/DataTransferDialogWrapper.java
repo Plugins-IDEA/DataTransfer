@@ -33,6 +33,7 @@ import javax.swing.JTextField;
 import javax.swing.KeyStroke;
 import java.awt.Color;
 import java.awt.Dimension;
+import java.awt.Toolkit;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
@@ -105,10 +106,14 @@ public class DataTransferDialogWrapper extends JDialog {
 
 	private DataTransferDialogWrapper(Project project) {
 		setTitle("Data Transfer");
-		contentPane.setPreferredSize(new Dimension(800, 750));
+		contentPane.setPreferredSize(new Dimension(800, 740));
 		setContentPane(contentPane);
 		setModal(true);
 		getRootPane().setDefaultButton(buttonOK);
+		setMinimumSize(new Dimension(800, 765));
+		Toolkit defaultToolkit = Toolkit.getDefaultToolkit();
+		Dimension screenSize   = defaultToolkit.getScreenSize();
+		setLocation(Double.valueOf(screenSize.getWidth()).intValue() / 2 - 400, Double.valueOf(screenSize.getHeight()).intValue() / 2 - 370);
 
 		CheckedTreeNode tableTreeRoot     = new CheckedTreeNode();
 		CheckboxTree    tableCheckboxTree = UiUtil.createCheckboxTree(UiUtil.getTableRenderer(), tableTreeRoot);
