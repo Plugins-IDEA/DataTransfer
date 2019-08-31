@@ -15,6 +15,7 @@ import com.whimthen.intelliJ.transfer.model.DataBaseInfo;
 import com.whimthen.intelliJ.transfer.model.StartType;
 import com.whimthen.intelliJ.transfer.model.TestConnectionType;
 import com.whimthen.intelliJ.transfer.model.TransferModel;
+import com.whimthen.intelliJ.transfer.tasks.ThreadContainer;
 import com.whimthen.intelliJ.transfer.utils.GlobalUtil;
 import com.whimthen.intelliJ.transfer.utils.UiUtil;
 import icons.DatabaseIcons;
@@ -49,6 +50,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Enumeration;
 import java.util.List;
+import java.util.Objects;
 
 public class DataTransferDialogWrapper extends JDialog {
 
@@ -157,8 +159,8 @@ public class DataTransferDialogWrapper extends JDialog {
 		UiUtil.setJScrollBar(dataBaseObjectsPane);
 		UiUtil.setJScrollBar(eventLogScrollPane);
 
-		newDataSourceButton.setIcon(DatabaseIcons.Dbms);
-		newDataSourceButton.addActionListener(e -> UiUtil.showAddDataSourceDialog(project, sourceConnComboBox));
+		newDataSourceButton.setIcon(DatabaseIcons.Add);
+		newDataSourceButton.addActionListener(e -> UiUtil.showAddDataSourceDialog(project));
 
 		JBColor jbColor = new JBColor(new Color(203, 217, 244, 80), new Color(203, 217, 244, 80));
 		tableOptionsLabel.setBackground(jbColor);
@@ -224,6 +226,7 @@ public class DataTransferDialogWrapper extends JDialog {
 
 	private ActionListener optionsStartListener() {
 		return (ActionEvent e) -> {
+			optionsStartButton.setEnabled(false);
 			selectEventLogPanel();
 			TransferModel model = new TransferModel();
 			model.setType(StartType.OPTIONS);
@@ -237,13 +240,15 @@ public class DataTransferDialogWrapper extends JDialog {
 			model.setTargetUser(targetUserTextField.getText());
 			model.setTargetPwd(targetPwdTextField.getText());
 			model.setTargetDb(targetDbTextField.getText());
+			model.setStartButton(optionsStartButton);
 			setModelOtherProperties(model);
-			DataBaseOperator.transfer(model, eventLogArea);
+			DataBaseOperator.transfer(model);
 		};
 	}
 
 	private ActionListener startListener() {
 		return (ActionEvent e) -> {
+			startButton.setEnabled(false);
 			selectEventLogPanel();
 			TransferModel model = new TransferModel();
 			model.setType(StartType.SELECT);
@@ -251,22 +256,14 @@ public class DataTransferDialogWrapper extends JDialog {
 			model.setTargetConn((String) targetConnComboBox.getSelectedItem());
 			model.setSourceDb((String) sourceDbComboBox.getSelectedItem());
 			model.setTargetDb((String) targetDbComboBox.getSelectedItem());
-			Enumeration    children = tableTreeRoot.children();
-			List<DasTable> tables   = new ArrayList<>();
-			while (children.hasMoreElements()) {
-				CheckedTreeNode treeNode = (CheckedTreeNode) children.nextElement();
-				if (treeNode.isChecked() && treeNode.isEnabled()) {
-					DasTable table = (DasTable) treeNode.getUserObject();
-					tables.add(table);
-				}
-			}
-			model.setTables(tables);
+			model.setStartButton(startButton);
 			setModelOtherProperties(model);
-			DataBaseOperator.transfer(model, eventLogArea);
+			DataBaseOperator.transfer(model);
 		};
 	}
 
 	private void setModelOtherProperties(TransferModel model) {
+		model.setEvenLog(eventLogArea);
 		boolean createTablesCheckBoxSelected = createTablesCheckBox.isSelected();
 		model.setCreateTables(createTablesCheckBoxSelected);
 		if (createTablesCheckBoxSelected) {
@@ -296,6 +293,16 @@ public class DataTransferDialogWrapper extends JDialog {
 		model.setUseDDLFromShowCreateTable(useDDLFromShowCreateTableCheckBox.isSelected());
 		model.setUseSingleTransaction(useSingleTransactionCheckBox.isSelected());
 		model.setDropTargetObjectsBeforeCreate(dropTargetObjectsBeforeCreateCheckBox.isSelected());
+		Enumeration    children = tableTreeRoot.children();
+		List<DasTable> tables   = new ArrayList<>();
+		while (children.hasMoreElements()) {
+			CheckedTreeNode treeNode = (CheckedTreeNode) children.nextElement();
+			if (treeNode.isChecked() && treeNode.isEnabled()) {
+				DasTable table = (DasTable) treeNode.getUserObject();
+				tables.add(table);
+			}
+		}
+		model.setTables(tables);
 	}
 
 	private ActionListener convertObjectNameToCheckboxListener() {
@@ -399,11 +406,19 @@ public class DataTransferDialogWrapper extends JDialog {
 
 	private void addTables2Tree(CheckboxTree checkboxTree) {
 		String db = (String) sourceDbComboBox.getSelectedItem();
-		if (StringUtils.isNotEmpty(db)) {
-			List<? extends DasTable> tables = DataSourceCache.getTables(db);
-			tableTreeSelectionCount = tables.size();
-			tableTreeRoot.setUserObject(UiUtil.getTableRootNodeText(tables.size(), tables.size()));
-			UiUtil.addTables(tables, tableTreeRoot);
+		List<? extends DasTable> tableList = null;
+		if (UiUtil.isSelectText(db)) {
+			String conn = (String) sourceConnComboBox.getSelectedItem();
+			if (StringUtils.isNotEmpty(conn)) {
+				tableList = Objects.requireNonNull(DataSourceCache.getTablesByDataSourceName(conn).orElse(null)).subList(0, 10);
+			}
+		} else if (StringUtils.isNotEmpty(db)) {
+			tableList = DataSourceCache.getTables(db);
+		}
+		if (Objects.nonNull(tableList) && !tableList.isEmpty()) {
+			tableTreeSelectionCount = tableList.size();
+			tableTreeRoot.setUserObject(UiUtil.getTableRootNodeText(tableList.size(), tableList.size()));
+			UiUtil.addTables(tableList, tableTreeRoot);
 			checkboxTree.updateUI();
 		}
 	}
@@ -416,6 +431,7 @@ public class DataTransferDialogWrapper extends JDialog {
 	}
 
 	private void addDbComboBoxItem(JComboBox<String> connComboBox, JComboBox<String> dbComboBox) {
+		dbComboBox.addItem(UiUtil.selectDataBase);
 		String sourceSelectConn = (String) connComboBox.getSelectedItem();
 		if (StringUtils.isNotEmpty(sourceSelectConn)) {
 			JBIterable<? extends DasNamespace> schemas = DataSourceCache.getSchemas(sourceSelectConn);
@@ -433,6 +449,7 @@ public class DataTransferDialogWrapper extends JDialog {
 		String selectedItem  = (String) sourceConnComboBox.getSelectedItem();
 		Object selectedItem1 = targetConnComboBox.getSelectedItem();
 		Messages.showMessageDialog("source: " + selectedItem + ", target: " + selectedItem1, "Connection", Messages.getInformationIcon());
+		ThreadContainer.getInstance().shutdown();
 //		dispose();
 	}
 

@@ -1,9 +1,6 @@
 package com.whimthen.intelliJ.transfer.utils;
 
 import com.intellij.database.autoconfig.DataSourceRegistry;
-import com.intellij.database.dataSource.DatabaseDriverImpl;
-import com.intellij.database.dataSource.LocalDataSource;
-import com.intellij.database.dataSource.url.template.UrlTemplate;
 import com.intellij.database.model.DasTable;
 import com.intellij.database.psi.DbPsiFacade;
 import com.intellij.database.view.ui.DataSourceManagerDialog;
@@ -17,9 +14,9 @@ import com.intellij.ui.SimpleTextAttributes;
 import com.intellij.util.ui.JBUI;
 import icons.DatabaseIcons;
 
-import javax.swing.JComboBox;
 import javax.swing.JScrollBar;
 import javax.swing.JScrollPane;
+import javax.swing.JTextArea;
 import javax.swing.JTree;
 import javax.swing.tree.DefaultMutableTreeNode;
 import java.awt.Color;
@@ -35,10 +32,23 @@ public class UiUtil {
 	public static final String selectConnection = "-- Please select Connection --";
 	public static final String selectDataBase   = "-- Please select DataBase --";
 
+	/**
+	 * 是否是选择提示语
+	 *
+	 * @param item 选择的文本
+	 * @return true | false
+	 */
 	public static boolean isSelectText(String item) {
 		return selectConnection.equals(item) || selectDataBase.equals(item);
 	}
 
+	/**
+	 * 创建带有复选框的树
+	 *
+	 * @param renderer 树的渲染
+	 * @param root 根节点
+	 * @return 带有复选框的树
+	 */
 	public static CheckboxTree createCheckboxTree(CheckboxTree.CheckboxTreeCellRenderer renderer, CheckedTreeNode root) {
 		CheckboxTree checkboxTree = new CheckboxTree(renderer, root,
 			new CheckboxTreeBase.CheckPolicy(true,
@@ -47,16 +57,47 @@ public class UiUtil {
 		return checkboxTree;
 	}
 
+	/**
+	 * 将滚动条滑动到最下面, JScrollPane中包含JTextArea
+	 *
+	 * @param textArea JTextArea
+	 */
+	public static void scrollDown(JTextArea textArea) {
+		textArea.selectAll();
+		if (textArea.getSelectedText() != null) {
+			textArea.setCaretPosition(textArea.getSelectedText().length());
+			textArea.requestFocus();
+		}
+	}
+
+	/**
+	 * 获取透明色
+	 *
+	 * @return 透明色
+	 */
 	public static Color getOpacity0() {
-		return new Color(48, 147, 253, 0);
+		return new Color(255, 255, 255, 0);
 	}
 
-	public static void setJScrollBar(JScrollPane jScrollBar) {
-		jScrollBar.setBorder(JBUI.Borders.empty());
-		jScrollBar.setVerticalScrollBar(getScrollBar());
-		jScrollBar.setHorizontalScrollBar(getScrollBar());
+	/**
+	 * 设置滚动条的样式
+	 * 边框为0, 横向纵向
+	 *
+	 * @param scrollPane 滚动面板
+	 */
+	public static void setJScrollBar(JScrollPane scrollPane) {
+		scrollPane.setBorder(JBUI.Borders.empty());
+		scrollPane.setVerticalScrollBar(getScrollBar());
+		scrollPane.setHorizontalScrollBar(getScrollBar());
 	}
 
+	/**
+	 * 添加子节点到带有复选框的树根节点
+	 * 默认选中
+	 *
+	 * @param text 显示文本
+	 * @param root 根节点
+	 */
 	public static void addStringCheckboxNode2Root(String text, CheckedTreeNode root) {
 		CheckedTreeNode newChild = new CheckedTreeNode(text);
 		newChild.setChecked(true);
@@ -64,6 +105,13 @@ public class UiUtil {
 		root.add(newChild);
 	}
 
+	/**
+	 * 添加子节点到带有复选框的树根节点
+	 *
+	 * @param text 显示内容
+	 * @param root 根节点
+	 * @param isChecked 是否选中
+	 */
 	public static void addStringCheckboxNode2Root(String text, CheckedTreeNode root, boolean isChecked) {
 		CheckedTreeNode newChild = new CheckedTreeNode(text);
 		newChild.setChecked(isChecked);
@@ -71,21 +119,11 @@ public class UiUtil {
 		root.add(newChild);
 	}
 
-	public static CheckboxTree.CheckboxTreeCellRenderer getStringRenderer() {
-		return new CheckboxTree.CheckboxTreeCellRenderer() {
-			@Override
-			public void customizeRenderer(JTree tree, Object value, boolean selected, boolean expanded, boolean leaf, int row, boolean hasFocus) {
-				super.customizeRenderer(tree, value, selected, expanded, leaf, row, hasFocus);
-				if (!(value instanceof DefaultMutableTreeNode)) return;
-				value = ((DefaultMutableTreeNode) value).getUserObject();
-
-				if (value instanceof CharSequence) {
-					getTextRenderer().append(value.toString());
-				}
-			}
-		};
-	}
-
+	/**
+	 * 获取表复选框树的渲染器
+	 *
+	 * @return 渲染器
+	 */
 	public static CheckboxTree.CheckboxTreeCellRenderer getTableRenderer() {
 		return new CheckboxTree.CheckboxTreeCellRenderer() {
 			@Override
@@ -107,10 +145,22 @@ public class UiUtil {
 		};
 	}
 
+	/**
+	 * 构造根节点显示文本
+	 *
+	 * @param selectionCount 当前选中多少条表
+	 * @param allCount 子节点个数
+	 * @return 显示文本
+	 */
 	public static String getTableRootNodeText(int selectionCount, int allCount) {
 		return "Tables (" + selectionCount + " of " + allCount + " tables)";
 	}
 
+	/**
+	 * 创建滚动条
+	 *
+	 * @return 滚动条
+	 */
 	public static JScrollBar getScrollBar() {
 		JScrollBar jScrollBar = new JScrollBar();
 		// 设置背景颜色
@@ -122,6 +172,12 @@ public class UiUtil {
 		return jScrollBar;
 	}
 
+	/**
+	 * 向根节点添加子节点表
+	 *
+	 * @param tables 表集合
+	 * @param root 根节点
+	 */
 	public static void addTables(List<? extends DasTable> tables, CheckedTreeNode root) {
 		root.removeAllChildren();
 		tables.forEach(table -> {
@@ -132,48 +188,22 @@ public class UiUtil {
 		});
 	}
 
+	/**
+	 * 弹出添加数据源的对话框
+	 * 默认使用MariaDb
+	 *
+	 * @param project 当前Project
+	 */
 	public static void showAddDataSourceDialog(Project project) {
 		DbPsiFacade        facade   = DbPsiFacade.getInstance(project);
 		DataSourceRegistry registry = new DataSourceRegistry(project);
-		boolean            b        = DataSourceManagerDialog.showDialog(facade, registry);
-		System.out.println(b);
-	}
-
-	public static void showAddDataSourceDialog(Project project, JComboBox comboBox) {
-		DbPsiFacade        facade   = DbPsiFacade.getInstance(project);
-//		DataSourceRegistry registry = new DataSourceRegistry(project);
-//		registry.retainNewOnly();
-//		new DatabaseViewActions.DataSourceFactory() {
-//			@Override
-//			public void create(@NotNull DbPsiFacade dbPsiFacade, @NotNull DataSourceManager<LocalDataSource> dataSourceManager, @NotNull LocalDataSource localDataSource) {
-//
-//			}
-//		};
-//		DatabaseCredentials credentialsStore = registry.getCredentialsStore();
-
-		UrlTemplate        template        = new UrlTemplate("default", "jdbc:mysql://{host::localhost}?[:{port::3306}][/{database}?][\\?&lt;&amp;,user={user},password={password},{:identifier}={:identifier}&gt;]");
-		DatabaseDriverImpl driver = new DatabaseDriverImpl(null, "MySQL for 5.1", "com.mysql.jdbc.Driver", template);
-		driver.setSqlDialect("MySQL");
-//		LocalDataSource    root   = LocalDataSource.create("MariaDB", "org.mariadb.jdbc.Driver", "jdbc:mariadb://localhost:3306", "root");
-		LocalDataSource    localDataSource = LocalDataSource.fromDriver(driver, "jdbc:mysql://localhost:3306", false);
-//		DataSourceManagerDialog.showDialog(project, localDataSource, null);
-
-		DataSourceRegistry registry = new DataSourceRegistry(project);
+		registry.setImportedFlag(false);
+		// org.mariadb.jdbc.Driver jdbc:mariadb://localhost:3306 com.mysql.jdbc.Driver jdbc:mysql://localhost:3306
+		registry.getBuilder().withDriverClass("org.mariadb.jdbc.Driver").withUrl("jdbc:mariadb://localhost:3306")
+				.withUser("root").withDriverProperty("autoReconnect", "true").withDriverProperty("zeroDateTimeBehavior", "convertToNull")
+				.withDriverProperty("tinyInt1isBit", "false").withDriverProperty("characterEncoding", "utf8")
+				.withDriverProperty("characterSetResults", "utf8").withDriverProperty("yearIsDateType", "false").commit();
 		DataSourceManagerDialog.showDialog(facade, registry);
-
-
-//		DataSourceManagerDialog.showDialog(facade, null, credentialsStore);
-//		String       selectedItem = (String) comboBox.getSelectedItem();
-//		DbDataSource dataSource   = null;
-//		if (StringUtils.isNotNullOrEmpty(selectedItem)) {
-//			dataSource = DataSourceCache.get(selectedItem);
-//		}
-//		if (Objects.nonNull(dataSource)) {
-//			DbDataSource dataSource1 = dataSource.getDataSource();
-//			DataSourceManagerDialog.showDialog(project, dataSource1, null);
-//		} else {
-//			showAddDataSourceDialog(project);
-//		}
 	}
 
 }

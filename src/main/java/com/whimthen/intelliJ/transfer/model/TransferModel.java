@@ -2,6 +2,8 @@ package com.whimthen.intelliJ.transfer.model;
 
 import com.intellij.database.model.DasTable;
 
+import javax.swing.JButton;
+import javax.swing.JTextArea;
 import java.util.List;
 
 /**
@@ -9,6 +11,9 @@ import java.util.List;
  * @version 1.0.0
  */
 public class TransferModel {
+
+	private JTextArea evenLog;
+	private JButton startButton;
 
 	// 1-select | 2-options
 	private StartType type;
@@ -62,6 +67,22 @@ public class TransferModel {
 	private boolean useDDLFromShowCreateTable;
 	private boolean useSingleTransaction;
 	private boolean dropTargetObjectsBeforeCreate;
+
+	public JTextArea getEvenLog() {
+		return evenLog;
+	}
+
+	public void setEvenLog(JTextArea evenLog) {
+		this.evenLog = evenLog;
+	}
+
+	public JButton getStartButton() {
+		return startButton;
+	}
+
+	public void setStartButton(JButton startButton) {
+		this.startButton = startButton;
+	}
 
 	public StartType getType() {
 		return type;
