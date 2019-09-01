@@ -11,6 +11,12 @@ import java.util.stream.Stream;
  */
 public class PasswordUtil {
 
+	/**
+	 * 获取Password输入框的文本
+	 *
+	 * @param password password输入框
+	 * @return password
+	 */
 	public static String password(JPasswordField password) {
 		if (Objects.isNull(password)) {
 			throw new NullPointerException();

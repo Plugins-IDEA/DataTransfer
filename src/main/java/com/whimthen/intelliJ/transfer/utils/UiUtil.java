@@ -4,6 +4,7 @@ import com.intellij.database.autoconfig.DataSourceRegistry;
 import com.intellij.database.model.DasTable;
 import com.intellij.database.psi.DbPsiFacade;
 import com.intellij.database.view.ui.DataSourceManagerDialog;
+import com.intellij.icons.AllIcons;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.text.StringUtilRt;
 import com.intellij.ui.CheckboxTree;
@@ -11,9 +12,13 @@ import com.intellij.ui.CheckboxTreeBase;
 import com.intellij.ui.CheckedTreeNode;
 import com.intellij.ui.JBColor;
 import com.intellij.ui.SimpleTextAttributes;
+import com.intellij.util.Consumer;
 import com.intellij.util.ui.JBUI;
 import icons.DatabaseIcons;
 
+import javax.swing.AbstractButton;
+import javax.swing.JButton;
+import javax.swing.JCheckBox;
 import javax.swing.JScrollBar;
 import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
@@ -21,7 +26,11 @@ import javax.swing.JTree;
 import javax.swing.tree.DefaultMutableTreeNode;
 import java.awt.Color;
 import java.awt.Dimension;
+import java.awt.event.ActionEvent;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * @author whimthen
@@ -29,8 +38,13 @@ import java.util.List;
  */
 public class UiUtil {
 
-	public static final String selectConnection = "-- Please select Connection --";
-	public static final String selectDataBase   = "-- Please select DataBase --";
+	public static final String SELECT_CONNECTION = "-- Please select Connection --";
+	public static final String SELECT_DATA_BASE  = "-- Please select DataBase --";
+	public static final String CLICK_TO_SEE_MORE = "double click to show more...";
+
+	private static List<? extends DasTable> tableList;
+	private static final int tableLimit = 50;
+	private static int tableSkip = 0;
 
 	/**
 	 * 是否是选择提示语
@@ -39,7 +53,55 @@ public class UiUtil {
 	 * @return true | false
 	 */
 	public static boolean isSelectText(String item) {
-		return selectConnection.equals(item) || selectDataBase.equals(item);
+		return SELECT_CONNECTION.equals(item) || SELECT_DATA_BASE.equals(item);
+	}
+
+	public static void setButtonEnable(List<JButton> buttons, boolean isEnable) {
+		buttons.forEach(button -> button.setEnabled(isEnable));
+	}
+
+	/**
+	 * 判断至少有一个复选框为选中状态
+	 *
+	 * @param checkBoxes 复选框集合
+	 * @return true | false
+	 */
+	public static boolean isAnyChecked(List<JCheckBox> checkBoxes) {
+		return checkBoxes.stream().anyMatch(AbstractButton::isSelected);
+	}
+
+	/**
+	 * 是否所有的复选框都没选中
+	 *
+	 * @param checkBoxes 复选框集合
+	 * @return true | false
+	 */
+	public static boolean isAllUnChecked(List<JCheckBox> checkBoxes) {
+		return checkBoxes.stream().noneMatch(AbstractButton::isSelected);
+	}
+
+	/**
+	 * 设置所有的复选框选中状态
+	 *
+	 * @param isChecked 是否选中
+	 * @param checkBoxes 复选框集合
+	 */
+	public static void setCheckboxChecked(boolean isChecked, List<JCheckBox> checkBoxes) {
+		checkBoxes.forEach(checkBox -> checkBox.setSelected(isChecked));
+	}
+
+	/**
+	 * 判断复选框是否选中
+	 *
+	 * @param e 事件
+	 * @return true | false
+	 */
+	public static boolean isChecked(ActionEvent e) {
+		boolean isChecked = true;
+		if (!((JCheckBox) e.getSource()).isSelected()) {
+			isChecked = false;
+		}
+		return isChecked;
 	}
 
 	/**
@@ -133,8 +195,13 @@ public class UiUtil {
 				value = ((DefaultMutableTreeNode) value).getUserObject();
 
 				if (value instanceof CharSequence) {
-					getTextRenderer().setIcon(DatabaseIcons.Schema);
-					getTextRenderer().append(" ").append(value.toString());
+					if (CLICK_TO_SEE_MORE.equals(value)) {
+						getTextRenderer().setIcon(AllIcons.Actions.Lightning);
+						getTextRenderer().append(" " + value, SimpleTextAttributes.GRAY_ATTRIBUTES);
+					} else {
+						getTextRenderer().setIcon(DatabaseIcons.Schema);
+						getTextRenderer().append(" ").append(value.toString());
+					}
 				} else if (value instanceof DasTable) {
 					getTextRenderer().setIcon(DatabaseIcons.Table);
 					String comment = StringUtilRt.notNullize(((DasTable) value).getComment());
@@ -148,12 +215,12 @@ public class UiUtil {
 	/**
 	 * 构造根节点显示文本
 	 *
-	 * @param selectionCount 当前选中多少条表
+//	 * @param selectionCount 当前选中多少条表
 	 * @param allCount 子节点个数
 	 * @return 显示文本
 	 */
-	public static String getTableRootNodeText(int selectionCount, int allCount) {
-		return "Tables (" + selectionCount + " of " + allCount + " tables)";
+	public static String getTableRootNodeText(int allCount) {
+		return "Tables (" + allCount + " tables)";
 	}
 
 	/**
@@ -168,7 +235,7 @@ public class UiUtil {
 		// 设置滚轮速度
 		jScrollBar.setUnitIncrement(3);
 		// 设置滚动条宽度
-		jScrollBar.setPreferredSize(new Dimension(10, 0));
+		jScrollBar.setPreferredSize(new Dimension(10, 10));
 		return jScrollBar;
 	}
 
@@ -178,13 +245,65 @@ public class UiUtil {
 	 * @param tables 表集合
 	 * @param root 根节点
 	 */
-	public static void addTables(List<? extends DasTable> tables, CheckedTreeNode root) {
-		root.removeAllChildren();
-		tables.forEach(table -> {
+	public static void addTables(List<? extends DasTable> tables, CheckedTreeNode root, boolean isRemove) {
+		if (isRemove)
+			root.removeAllChildren();
+		else
+			root.remove(root.getChildCount() - 1);
+		tableList = tables;
+		tables.stream().skip(tableSkip).limit(tableLimit).forEach(table -> {
 			CheckedTreeNode newChild = new CheckedTreeNode(table);
 			newChild.setChecked(true);
 			newChild.setEnabled(true);
 			root.add(newChild);
+		});
+		if (tables.size() > tableLimit + tableSkip) {
+			DefaultMutableTreeNode treeNode = new DefaultMutableTreeNode(CLICK_TO_SEE_MORE, false);
+			root.add(treeNode);
+		}
+	}
+
+	/**
+	 * 重置复选框下面立标的数量
+	 */
+	public static void resetTableSkip() {
+		tableSkip = 0;
+	}
+
+	/**
+	 * 添加鼠标点击事件
+	 *
+	 * @param checkboxTree 复选框树
+	 * @param root 根节点
+	 */
+	public static void addCheckboxClickShowMoreListener(CheckboxTree checkboxTree, CheckedTreeNode root) {
+		UiUtil.addCheckboxTreeMouseDoubleClickListener(checkboxTree, e -> {
+			Object lastPathComponent = ((CheckboxTree) e.getSource()).getSelectionModel().getSelectionPath().getLastPathComponent();
+			if (Objects.nonNull(lastPathComponent) && lastPathComponent instanceof DefaultMutableTreeNode) {
+				Object userObject = ((DefaultMutableTreeNode) lastPathComponent).getUserObject();
+				if (UiUtil.CLICK_TO_SEE_MORE.equals(userObject)) {
+					tableSkip += tableLimit;
+					addTables(tableList, root, false);
+				}
+			}
+		});
+	}
+
+	/**
+	 * 添加复选框树的鼠标点击事件
+	 *
+	 * @param checkboxTree 复选框树
+	 * @param consumer 消费者
+	 */
+	public static void addCheckboxTreeMouseDoubleClickListener(CheckboxTree checkboxTree, Consumer<MouseEvent> consumer) {
+		checkboxTree.addMouseListener(new MouseAdapter() {
+			@Override
+			public void mouseClicked(MouseEvent e) {
+				if (e.getClickCount() == 2) {
+					consumer.consume(e);
+					checkboxTree.updateUI();
+				}
+			}
 		});
 	}
 
@@ -204,6 +323,7 @@ public class UiUtil {
 				.withDriverProperty("tinyInt1isBit", "false").withDriverProperty("characterEncoding", "utf8")
 				.withDriverProperty("characterSetResults", "utf8").withDriverProperty("yearIsDateType", "false").commit();
 		DataSourceManagerDialog.showDialog(facade, registry);
+		// TODO 刷新DataSource缓存
 	}
 
 }

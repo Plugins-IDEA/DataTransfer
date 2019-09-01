@@ -13,16 +13,33 @@ import java.util.stream.Stream;
  */
 public class GlobalUtil {
 
+	/**
+	 * 对象不为空时执行
+	 *
+	 * @param obj 对象
+	 * @param consumer 消费者
+	 * @param <T> 范型
+	 */
 	public static<T> void nonNullConsumer(T obj, Consumer<T> consumer) {
 		if (Objects.nonNull(obj)) {
 			consumer.accept(obj);
 		}
 	}
 
+	/**
+	 * 获取系统换行符
+	 *
+	 * @return 换行符
+	 */
 	public static String getLineSeparator() {
 		return System.getProperty("line.separator");
 	}
 
+	/**
+	 * 设置输入框只能输入数字
+	 *
+	 * @param textFields 输入框
+	 */
 	public static void onlyInputNumber(JTextField... textFields) {
 		Stream.of(textFields).forEach(textField -> {
 			textField.addKeyListener(new KeyAdapter(){

@@ -12,16 +12,15 @@ import java.util.List;
  */
 public class TransferModel {
 
-	private JTextArea evenLog;
-	private JButton startButton;
+	private JTextArea     evenLog;
+	private List<JButton> enableButtons;
 
-	// 1-select | 2-options
 	private StartType type;
 
 	// Select Connection
 	private String sourceConn;
 	private String targetConn;
-	private List<DasTable> tables;
+	private List<? extends DasTable> tables;
 
 	// Select & Options common
 	private String sourceDb;
@@ -76,12 +75,12 @@ public class TransferModel {
 		this.evenLog = evenLog;
 	}
 
-	public JButton getStartButton() {
-		return startButton;
+	public List<JButton> getEnableButtons() {
+		return enableButtons;
 	}
 
-	public void setStartButton(JButton startButton) {
-		this.startButton = startButton;
+	public void setEnableButtons(List<JButton> enableButtons) {
+		this.enableButtons = enableButtons;
 	}
 
 	public StartType getType() {
@@ -124,11 +123,11 @@ public class TransferModel {
 		this.targetDb = targetDb;
 	}
 
-	public List<DasTable> getTables() {
+	public List<? extends DasTable> getTables() {
 		return tables;
 	}
 
-	public void setTables(List<DasTable> tables) {
+	public void setTables(List<? extends DasTable> tables) {
 		this.tables = tables;
 	}
 

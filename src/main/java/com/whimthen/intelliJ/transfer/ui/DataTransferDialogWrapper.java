@@ -11,12 +11,13 @@ import com.intellij.ui.JBColor;
 import com.intellij.util.containers.JBIterable;
 import com.whimthen.intelliJ.transfer.cache.DataSourceCache;
 import com.whimthen.intelliJ.transfer.db.DataBaseOperator;
+import com.whimthen.intelliJ.transfer.model.ConnectionType;
 import com.whimthen.intelliJ.transfer.model.DataBaseInfo;
 import com.whimthen.intelliJ.transfer.model.StartType;
-import com.whimthen.intelliJ.transfer.model.TestConnectionType;
 import com.whimthen.intelliJ.transfer.model.TransferModel;
 import com.whimthen.intelliJ.transfer.tasks.ThreadContainer;
 import com.whimthen.intelliJ.transfer.utils.GlobalUtil;
+import com.whimthen.intelliJ.transfer.utils.PasswordUtil;
 import com.whimthen.intelliJ.transfer.utils.UiUtil;
 import icons.DatabaseIcons;
 import org.apache.commons.lang.StringUtils;
@@ -48,7 +49,7 @@ import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Enumeration;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
@@ -109,8 +110,10 @@ public class DataTransferDialogWrapper extends JDialog {
 	private JTextArea         eventLogArea;
 	private JProgressBar      progressBar;
 
-	private CheckedTreeNode tableTreeRoot           = new CheckedTreeNode();
-	private int             tableTreeSelectionCount = 0;
+	private CheckedTreeNode          tableTreeRoot           = new CheckedTreeNode();
+	private int                      tableTreeSelectionCount = 0;
+	private List<? extends DasTable> tableList               = Collections.emptyList();
+	private CheckboxTree             tableCheckboxTree;
 
 	private DataTransferDialogWrapper(Project project) {
 		setTitle("Data Transfer");
@@ -123,34 +126,29 @@ public class DataTransferDialogWrapper extends JDialog {
 		Dimension screenSize     = defaultToolkit.getScreenSize();
 		setLocation(Double.valueOf(screenSize.getWidth()).intValue() / 2 - 400, Double.valueOf(screenSize.getHeight()).intValue() / 2 - 370);
 
-		CheckboxTree tableCheckboxTree = UiUtil.createCheckboxTree(UiUtil.getTableRenderer(), tableTreeRoot);
+		tableCheckboxTree = UiUtil.createCheckboxTree(UiUtil.getTableRenderer(), tableTreeRoot);
 //		CheckedTreeNode viewsTreeRoot     = new CheckedTreeNode();
 //		CheckboxTree    viewsCheckboxTree = UiUtil.createCheckboxTree(UiUtil.getTableRenderer(), viewsTreeRoot);
 
 		addConnComboBoxItem();
 
 		addDbComboBoxItem(sourceConnComboBox, sourceDbComboBox);
-		sourceConnComboBox.addItemListener(e -> {
-			sourceDbComboBox.removeAllItems();
-			addDbComboBoxItem(sourceConnComboBox, sourceDbComboBox);
-		});
+		sourceConnComboBox.addItemListener(e -> addDbComboBoxItem(sourceConnComboBox, sourceDbComboBox));
 		addDbComboBoxItem(targetConnComboBox, targetDbComboBox);
-		targetConnComboBox.addItemListener(e -> {
-			targetDbComboBox.removeAllItems();
-			addDbComboBoxItem(targetConnComboBox, targetDbComboBox);
-		});
+		targetConnComboBox.addItemListener(e -> addDbComboBoxItem(targetConnComboBox, targetDbComboBox));
 
 		startButton.addActionListener(startListener());
 		optionsStartButton.addActionListener(optionsStartListener());
-		testSourceConnectionButton.addActionListener(testConnectionListener(TestConnectionType.SOURCE));
-		testTargetConnectionButton.addActionListener(testConnectionListener(TestConnectionType.TARGET));
+		testSourceConnectionButton.addActionListener(testConnectionListener(ConnectionType.SOURCE));
+		testTargetConnectionButton.addActionListener(testConnectionListener(ConnectionType.TARGET));
 
-		addTables2Tree(tableCheckboxTree);
-		sourceDbComboBox.addItemListener(e -> addTables2Tree(tableCheckboxTree));
+		addTables2Tree(StartType.SELECT);
+		sourceDbComboBox.addItemListener(e -> addTables2Tree(StartType.SELECT));
 
 		GlobalUtil.onlyInputNumber(sourcePortTextField, targetPortTextField);
 
-		addCheckboxTreeListener(tableCheckboxTree, tableTreeRoot);
+		UiUtil.addCheckboxClickShowMoreListener(tableCheckboxTree,tableTreeRoot);
+//		addCheckboxTreeListener(tableTreeRoot);
 		tableCheckboxTree.setRootVisible(true);
 		tableCheckboxTree.setEnabled(true);
 		tableCheckboxTree.setShowsRootHandles(true);
@@ -192,20 +190,26 @@ public class DataTransferDialogWrapper extends JDialog {
 			JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT);
 	}
 
-	private ActionListener testConnectionListener(TestConnectionType connectionType) {
+	/**
+	 * 创建Options Connection面板的两个Test connection按钮的监听事件
+	 *
+	 * @param connectionType 连接类型 -> 源数据源 | 目标数据源
+	 * @return 监听事件
+	 */
+	private ActionListener testConnectionListener(ConnectionType connectionType) {
 		return (ActionEvent e) -> {
 			String host, port, user, password, database;
-			if (connectionType.equals(TestConnectionType.SOURCE)) {
+			if (connectionType.equals(ConnectionType.SOURCE)) {
 				host = sourceHostTextField.getText();
 				port = sourcePortTextField.getText();
 				user = sourceUserTextField.getText();
-				password = sourcePwdTextField.getText();
+				password = PasswordUtil.password(sourcePwdTextField);
 				database = sourceDbTextField.getText();
 			} else {
 				host = targetHostTextField.getText();
 				port = targetPortTextField.getText();
 				user = targetUserTextField.getText();
-				password = targetPwdTextField.getText();
+				password = PasswordUtil.password(targetPwdTextField);
 				database = targetDbTextField.getText();
 			}
 			DataBaseInfo info = new DataBaseInfo();
@@ -221,12 +225,21 @@ public class DataTransferDialogWrapper extends JDialog {
 			} else {
 				Messages.showMessageDialog("Connect Successful!", "Test Connection Result", Messages.getInformationIcon());
 			}
+
+			selectTableTreePanel();
+			UiUtil.resetTableSkip();
+			addTables2Tree(StartType.OPTIONS);
 		};
 	}
 
+	/**
+	 * 创建Options Connection面板的Start按钮的监听事件
+	 *
+	 * @return 监听事件
+	 */
 	private ActionListener optionsStartListener() {
 		return (ActionEvent e) -> {
-			optionsStartButton.setEnabled(false);
+			UiUtil.setButtonEnable(getActionButtons(), false);
 			selectEventLogPanel();
 			TransferModel model = new TransferModel();
 			model.setType(StartType.OPTIONS);
@@ -240,15 +253,32 @@ public class DataTransferDialogWrapper extends JDialog {
 			model.setTargetUser(targetUserTextField.getText());
 			model.setTargetPwd(targetPwdTextField.getText());
 			model.setTargetDb(targetDbTextField.getText());
-			model.setStartButton(optionsStartButton);
+			model.setEnableButtons(getActionButtons());
 			setModelOtherProperties(model);
 			DataBaseOperator.transfer(model);
 		};
 	}
 
+	private List<JButton> getActionButtons(JButton... buttons) {
+		ArrayList<JButton> jButtons = new ArrayList<>();
+		jButtons.add(optionsStartButton);
+		jButtons.add(startButton);
+		jButtons.add(buttonOK);
+		jButtons.add(buttonCancel);
+		if (buttons.length > 0) {
+			jButtons.addAll(Arrays.asList(buttons));
+		}
+		return jButtons;
+	}
+
+	/**
+	 * 创建Select Connection面板中的Start按钮的监听事件
+	 *
+	 * @return 监听事件
+	 */
 	private ActionListener startListener() {
 		return (ActionEvent e) -> {
-			startButton.setEnabled(false);
+			UiUtil.setButtonEnable(getActionButtons(), false);
 			selectEventLogPanel();
 			TransferModel model = new TransferModel();
 			model.setType(StartType.SELECT);
@@ -256,12 +286,17 @@ public class DataTransferDialogWrapper extends JDialog {
 			model.setTargetConn((String) targetConnComboBox.getSelectedItem());
 			model.setSourceDb((String) sourceDbComboBox.getSelectedItem());
 			model.setTargetDb((String) targetDbComboBox.getSelectedItem());
-			model.setStartButton(startButton);
+			model.setEnableButtons(getActionButtons());
 			setModelOtherProperties(model);
 			DataBaseOperator.transfer(model);
 		};
 	}
 
+	/**
+	 * 设置转换实体的其他字段值
+	 *
+	 * @param model 转换实体
+	 */
 	private void setModelOtherProperties(TransferModel model) {
 		model.setEvenLog(eventLogArea);
 		boolean createTablesCheckBoxSelected = createTablesCheckBox.isSelected();
@@ -293,18 +328,14 @@ public class DataTransferDialogWrapper extends JDialog {
 		model.setUseDDLFromShowCreateTable(useDDLFromShowCreateTableCheckBox.isSelected());
 		model.setUseSingleTransaction(useSingleTransactionCheckBox.isSelected());
 		model.setDropTargetObjectsBeforeCreate(dropTargetObjectsBeforeCreateCheckBox.isSelected());
-		Enumeration    children = tableTreeRoot.children();
-		List<DasTable> tables   = new ArrayList<>();
-		while (children.hasMoreElements()) {
-			CheckedTreeNode treeNode = (CheckedTreeNode) children.nextElement();
-			if (treeNode.isChecked() && treeNode.isEnabled()) {
-				DasTable table = (DasTable) treeNode.getUserObject();
-				tables.add(table);
-			}
-		}
-		model.setTables(tables);
+		model.setTables(getTables(model.getType()));
 	}
 
+	/**
+	 * 创建名称转换的监听事件
+	 *
+	 * @return 监听事件
+	 */
 	private ActionListener convertObjectNameToCheckboxListener() {
 		return (ActionEvent e) -> {
 			boolean isEnable = false;
@@ -316,49 +347,87 @@ public class DataTransferDialogWrapper extends JDialog {
 		};
 	}
 
+	/**
+	 * 创建Insert Records复选框的监听事件
+	 *
+	 * @return 监听事件
+	 */
 	private ActionListener insertRecordsCheckboxListener() {
 		List<JCheckBox> insertRecordsJCheckboxes = getInsertRecordsJCheckbox();
 		insertRecordsJCheckboxes.add(insertRecordsCheckbox);
-		return (ActionEvent e) -> setCheckboxChecked(isChecked(e), insertRecordsJCheckboxes);
+		return (ActionEvent e) -> UiUtil.setCheckboxChecked(UiUtil.isChecked(e), insertRecordsJCheckboxes);
 	}
 
+	/**
+	 * 创建Create tables监听事件
+	 *
+	 * @return 监听事件
+	 */
 	private ActionListener createTablesCheckboxListener() {
 		List<JCheckBox> createTablesJCheckboxes = getCreateTablesJCheckbox();
 		createTablesJCheckboxes.add(createTablesCheckBox);
-		return (ActionEvent e) -> setCheckboxChecked(isChecked(e), createTablesJCheckboxes);
+		return (ActionEvent e) -> UiUtil.setCheckboxChecked(UiUtil.isChecked(e), createTablesJCheckboxes);
 	}
 
+	/**
+	 * 添加监听事件到所有的复选框点击事件
+	 *
+	 * @param checkBoxes 复选框
+	 * @param listener   监听事件
+	 */
 	private void addJCheckboxActionListener(List<JCheckBox> checkBoxes, ActionListener listener) {
 		checkBoxes.forEach(checkbox -> checkbox.addActionListener(listener));
 	}
 
+	/**
+	 * 创建Insert Records子复选框监听事件
+	 *
+	 * @return 监听事件
+	 */
 	private ActionListener insertRecordsAllSelectedListener() {
 		return (ActionEvent e) -> {
 			List<JCheckBox> insertRecordsJCheckboxes = getInsertRecordsJCheckbox();
-			if (isAnyChecked(insertRecordsJCheckboxes)) {
+			if (UiUtil.isAnyChecked(insertRecordsJCheckboxes)) {
 				insertRecordsCheckbox.setSelected(true);
-			} else if (isAllUnChecked(insertRecordsJCheckboxes)) {
+			} else if (UiUtil.isAllUnChecked(insertRecordsJCheckboxes)) {
 				insertRecordsCheckbox.setSelected(false);
 			}
 		};
 	}
 
+	/**
+	 * 创建Create tables子复选框的监听事件
+	 * 子复选框至少又一个为选中时, 设置父复选框为选中状态
+	 * 子复选框都没有选中时, 设置父复选框为未选中状态
+	 *
+	 * @return 监听事件
+	 */
 	private ActionListener createTablesAllSelectedListener() {
 		return (ActionEvent e) -> {
 			List<JCheckBox> createTablesJCheckboxes = getCreateTablesJCheckbox();
-			if (isAnyChecked(createTablesJCheckboxes)) {
+			if (UiUtil.isAnyChecked(createTablesJCheckboxes)) {
 				createTablesCheckBox.setSelected(true);
-			} else if (isAllUnChecked(createTablesJCheckboxes)) {
+			} else if (UiUtil.isAllUnChecked(createTablesJCheckboxes)) {
 				createTablesCheckBox.setSelected(false);
 			}
 		};
 	}
 
+	/**
+	 * 获取Insert Records下面的子复选框
+	 *
+	 * @return 复选框集合
+	 */
 	private List<JCheckBox> getInsertRecordsJCheckbox() {
 		return new ArrayList<>(Arrays.asList(lockTargetTablesCheckbox, useTransactionCheckbox, useCompleteInsertStatementsCheckbox,
 			useExtendedInsertStatementsCheckbox, useDelayedInsertStatementsCheckbox, useBLOBCheckbox));
 	}
 
+	/**
+	 * 获取Options tabbedPane面板的Create tables下面的子复选框
+	 *
+	 * @return 复选框集合
+	 */
 	private List<JCheckBox> getCreateTablesJCheckbox() {
 		return new ArrayList<>(Arrays.asList(includeIndexesCheckBox, includeForeignKeyConstraintsCheckBox, includeEngineTableTypeCheckBox,
 			includeCharacterSetCheckbox, includeAutoIncrementCheckbox, includeOtherTableOptionsCheckbox, includeTriggersCheckbox));
@@ -372,57 +441,94 @@ public class DataTransferDialogWrapper extends JDialog {
 		return checkBoxes.stream().noneMatch(AbstractButton::isSelected);
 	}
 
-	private void setCheckboxChecked(boolean isChecked, List<JCheckBox> checkBoxes) {
-		checkBoxes.forEach(checkBox -> checkBox.setSelected(isChecked));
-	}
+	private boolean isTreeRoot = true, isCheckedAll = true;
 
-	private boolean isChecked(ActionEvent e) {
-		boolean isChecked = true;
-		if (!((JCheckBox) e.getSource()).isSelected()) {
-			isChecked = false;
-		}
-		return isChecked;
-	}
-
-	private void addCheckboxTreeListener(CheckboxTree checkboxTree, CheckedTreeNode root) {
-		checkboxTree.addCheckboxTreeListener(new CheckboxTreeListener() {
+	/**
+	 * 复选框树的监听事件
+	 *
+	 * @param root 根节点
+	 */
+	private void addCheckboxTreeListener(CheckedTreeNode root) {
+		tableCheckboxTree.addCheckboxTreeListener(new CheckboxTreeListener() {
 			@Override
 			public void nodeStateChanged(@NotNull CheckedTreeNode node) {
+				int rowCount = tableList.size();
+				boolean isRoot = true;
 				if (!node.isRoot()) {
+					isTreeRoot = false;
 					boolean checked = node.isChecked();
 					if (checked) tableTreeSelectionCount++;
 					else tableTreeSelectionCount--;
 					if (tableTreeSelectionCount < 0)
 						tableTreeSelectionCount = 0;
-					int rowCount = root.getChildCount();
-					if (tableTreeSelectionCount > rowCount)
+					if (tableTreeSelectionCount > rowCount) {
 						tableTreeSelectionCount = rowCount;
-					root.setUserObject(UiUtil.getTableRootNodeText(tableTreeSelectionCount, rowCount));
-					checkboxTree.updateUI();
+						if (!checked) {
+							tableTreeSelectionCount--;
+						}
+					}
+//					root.setUserObject(UiUtil.getTableRootNodeText(tableTreeSelectionCount, rowCount));
+					isRoot = false;
+				} else if (!isTreeRoot) {
+					isTreeRoot = true;
+					return;
 				}
+				if (isRoot) {
+					isTreeRoot = true;
+					if (!isCheckedAll) {
+						tableTreeSelectionCount = tableList.size();
+					} else {
+						tableTreeSelectionCount = 0;
+					}
+//					root.setUserObject(UiUtil.getTableRootNodeText(tableTreeSelectionCount, rowCount));
+					isCheckedAll = !isCheckedAll;
+				}
+				tableCheckboxTree.updateUI();
+//				isChildRoot = !isChildRoot;
 			}
 		});
 	}
 
-	private void addTables2Tree(CheckboxTree checkboxTree) {
-		String db = (String) sourceDbComboBox.getSelectedItem();
-		List<? extends DasTable> tableList = null;
-		if (UiUtil.isSelectText(db)) {
-			String conn = (String) sourceConnComboBox.getSelectedItem();
-			if (StringUtils.isNotEmpty(conn)) {
-				tableList = Objects.requireNonNull(DataSourceCache.getTablesByDataSourceName(conn).orElse(null)).subList(0, 10);
-			}
-		} else if (StringUtils.isNotEmpty(db)) {
-			tableList = DataSourceCache.getTables(db);
-		}
-		if (Objects.nonNull(tableList) && !tableList.isEmpty()) {
-			tableTreeSelectionCount = tableList.size();
-			tableTreeRoot.setUserObject(UiUtil.getTableRootNodeText(tableList.size(), tableList.size()));
-			UiUtil.addTables(tableList, tableTreeRoot);
-			checkboxTree.updateUI();
-		}
+	/**
+	 * 添加子节点到表树
+	 */
+	private void addTables2Tree(StartType startType) {
+		List<? extends DasTable> tableList = getTables(startType);
+		UiUtil.resetTableSkip();
+		UiUtil.addTables(tableList, tableTreeRoot, true);
+		tableTreeRoot.setUserObject(UiUtil.getTableRootNodeText(tableList.size()));
+		tableCheckboxTree.updateUI();
 	}
 
+	/**
+	 * 获取连接DB或Schema中所有表
+	 *
+	 * @param startType 运行模式
+	 * @return 表集合
+	 */
+	private List<? extends DasTable> getTables(StartType startType) {
+		List<? extends DasTable> tableList = Collections.emptyList();
+		if (StartType.SELECT.equals(startType)) {
+			String db = (String) sourceDbComboBox.getSelectedItem();
+			if (UiUtil.isSelectText(db)) {
+				String conn = (String) sourceConnComboBox.getSelectedItem();
+				if (StringUtils.isNotEmpty(conn)) {
+					tableList = Objects.requireNonNull(DataSourceCache.getTablesByDataSourceName(conn).orElse(null));
+				}
+			} else if (StringUtils.isNotEmpty(db)) {
+				tableList = DataSourceCache.getTables(db);
+			}
+			this.tableList = tableList;
+		} else if (StartType.OPTIONS.equals(startType)) {
+			tableList = this.tableList;
+		}
+		tableTreeSelectionCount = tableList.size();
+		return tableList;
+	}
+
+	/**
+	 * 设置数据源下拉框值
+	 */
 	private void addConnComboBoxItem() {
 		DataSourceCache.getDataSources().forEach(dataSource -> {
 			sourceConnComboBox.addItem(dataSource.getName());
@@ -430,8 +536,15 @@ public class DataTransferDialogWrapper extends JDialog {
 		});
 	}
 
+	/**
+	 * 设置DataBase下拉框的值
+	 *
+	 * @param connComboBox 数据源的下拉框
+	 * @param dbComboBox   DataBase下拉框
+	 */
 	private void addDbComboBoxItem(JComboBox<String> connComboBox, JComboBox<String> dbComboBox) {
-		dbComboBox.addItem(UiUtil.selectDataBase);
+		dbComboBox.removeAllItems();
+		dbComboBox.addItem(UiUtil.SELECT_DATA_BASE);
 		String sourceSelectConn = (String) connComboBox.getSelectedItem();
 		if (StringUtils.isNotEmpty(sourceSelectConn)) {
 			JBIterable<? extends DasNamespace> schemas = DataSourceCache.getSchemas(sourceSelectConn);
@@ -441,8 +554,18 @@ public class DataTransferDialogWrapper extends JDialog {
 		}
 	}
 
+	/**
+	 * 选中Options面板的最后一个
+	 */
 	private void selectEventLogPanel() {
 		optionsTabbedPane.setSelectedIndex(optionsTabbedPane.getTabCount() - 1);
+	}
+
+	/**
+	 * 选中Options TableTree面板
+	 */
+	private void selectTableTreePanel() {
+		optionsTabbedPane.setSelectedIndex(0);
 	}
 
 	private void onOK() {

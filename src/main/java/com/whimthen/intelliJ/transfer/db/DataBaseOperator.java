@@ -8,8 +8,6 @@ import com.whimthen.intelliJ.transfer.tasks.ThreadContainer;
 import com.whimthen.intelliJ.transfer.utils.GlobalUtil;
 import com.whimthen.intelliJ.transfer.utils.UiUtil;
 
-import javax.swing.JButton;
-import javax.swing.JTextArea;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
@@ -30,7 +28,7 @@ public class DataBaseOperator {
 	 * @param model 用户输入选择的可选项
 	 */
 	public static void transfer(TransferModel model) {
-		List<DasTable> tables = model.getTables();
+		List<? extends DasTable> tables = model.getTables();
 		if (Objects.nonNull(tables) && !tables.isEmpty()) {
 			ThreadContainer.getInstance().run(e -> model.getEvenLog().append(e.getMessage()));
 			for (int i = 0; i < tables.size(); i++) {
@@ -40,18 +38,18 @@ public class DataBaseOperator {
 					model.getEvenLog().append(log(table.getName() + GlobalUtil.getLineSeparator()));
 					UiUtil.scrollDown(model.getEvenLog());
 					try {
-						TimeUnit.MILLISECONDS.sleep(500);
+						TimeUnit.MILLISECONDS.sleep(10);
 					} catch (InterruptedException e) {
 						e.printStackTrace();
 					}
 					if (isEnd) {
-						model.getStartButton().setEnabled(true);
+						UiUtil.setButtonEnable(model.getEnableButtons(), true);
 					}
 				};
 				ThreadContainer.getInstance().log(throwingRunnable);
 			}
 		} else {
-			model.getStartButton().setEnabled(true);
+			UiUtil.setButtonEnable(model.getEnableButtons(), true);
 		}
 	}
 
