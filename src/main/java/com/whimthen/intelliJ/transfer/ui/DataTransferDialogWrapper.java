@@ -1,7 +1,10 @@
 package com.whimthen.intelliJ.transfer.ui;
 
+import com.intellij.database.dialects.mysql.model.MysqlImplModel;
 import com.intellij.database.model.DasNamespace;
 import com.intellij.database.model.DasTable;
+import com.intellij.database.model.basic.BasicModTable;
+import com.intellij.database.model.basic.BasicTable;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.Messages;
 import com.intellij.ui.CheckboxTree;
@@ -52,6 +55,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 public class DataTransferDialogWrapper extends JDialog {
 
@@ -75,6 +79,7 @@ public class DataTransferDialogWrapper extends JDialog {
 	private JLabel            tableOptionsLabel;
 	private JLabel            recordOptionsLabel;
 	private JLabel            otherOptionsLabel;
+	private JLabel            progressValueLabel;
 	private JCheckBox         convertObjectNameToCheckBox;
 	private JCheckBox         continueOnErrorCheckBox;
 	private JCheckBox         lockSourceTablesCheckBox;
@@ -114,6 +119,7 @@ public class DataTransferDialogWrapper extends JDialog {
 	private int                      tableTreeSelectionCount = 0;
 	private List<? extends DasTable> tableList               = Collections.emptyList();
 	private CheckboxTree             tableCheckboxTree;
+	private List<DasTable> unSelectTables = new ArrayList<>();
 
 	private DataTransferDialogWrapper(Project project) {
 		setTitle("Data Transfer");
@@ -147,8 +153,8 @@ public class DataTransferDialogWrapper extends JDialog {
 
 		GlobalUtil.onlyInputNumber(sourcePortTextField, targetPortTextField);
 
-		UiUtil.addCheckboxClickShowMoreListener(tableCheckboxTree,tableTreeRoot);
-//		addCheckboxTreeListener(tableTreeRoot);
+		UiUtil.addCheckboxClickShowMoreListener(tableCheckboxTree, tableTreeRoot);
+		addCheckboxTreeListener(tableTreeRoot);
 		tableCheckboxTree.setRootVisible(true);
 		tableCheckboxTree.setEnabled(true);
 		tableCheckboxTree.setShowsRootHandles(true);
@@ -239,7 +245,13 @@ public class DataTransferDialogWrapper extends JDialog {
 	 */
 	private ActionListener optionsStartListener() {
 		return (ActionEvent e) -> {
-			UiUtil.setButtonEnable(getActionButtons(), false);
+			List<? extends DasTable> selectionTables = getSelectionTables(StartType.SELECT);
+			if (Objects.isNull(selectionTables) || selectionTables.isEmpty()) {
+				Messages.showWarningDialog("Please select transfer tables!", "Transfer Tables Is Empty");
+				return;
+			}
+			List<JButton> actionButtons = getActionButtons();
+			UiUtil.setButtonEnable(actionButtons, false);
 			selectEventLogPanel();
 			TransferModel model = new TransferModel();
 			model.setType(StartType.OPTIONS);
@@ -253,7 +265,8 @@ public class DataTransferDialogWrapper extends JDialog {
 			model.setTargetUser(targetUserTextField.getText());
 			model.setTargetPwd(targetPwdTextField.getText());
 			model.setTargetDb(targetDbTextField.getText());
-			model.setEnableButtons(getActionButtons());
+			model.setEnableButtons(actionButtons);
+			model.setTables(selectionTables);
 			setModelOtherProperties(model);
 			DataBaseOperator.transfer(model);
 		};
@@ -278,7 +291,13 @@ public class DataTransferDialogWrapper extends JDialog {
 	 */
 	private ActionListener startListener() {
 		return (ActionEvent e) -> {
-			UiUtil.setButtonEnable(getActionButtons(), false);
+			List<? extends DasTable> selectionTables = getSelectionTables(StartType.SELECT);
+			if (Objects.isNull(selectionTables) || selectionTables.isEmpty()) {
+				Messages.showWarningDialog("Please select transfer tables!", "Transfer Tables Is Empty");
+				return;
+			}
+			List<JButton> actionButtons = getActionButtons();
+			UiUtil.setButtonEnable(actionButtons, false);
 			selectEventLogPanel();
 			TransferModel model = new TransferModel();
 			model.setType(StartType.SELECT);
@@ -286,7 +305,8 @@ public class DataTransferDialogWrapper extends JDialog {
 			model.setTargetConn((String) targetConnComboBox.getSelectedItem());
 			model.setSourceDb((String) sourceDbComboBox.getSelectedItem());
 			model.setTargetDb((String) targetDbComboBox.getSelectedItem());
-			model.setEnableButtons(getActionButtons());
+			model.setEnableButtons(actionButtons);
+			model.setTables(selectionTables);
 			setModelOtherProperties(model);
 			DataBaseOperator.transfer(model);
 		};
@@ -328,7 +348,14 @@ public class DataTransferDialogWrapper extends JDialog {
 		model.setUseDDLFromShowCreateTable(useDDLFromShowCreateTableCheckBox.isSelected());
 		model.setUseSingleTransaction(useSingleTransactionCheckBox.isSelected());
 		model.setDropTargetObjectsBeforeCreate(dropTargetObjectsBeforeCreateCheckBox.isSelected());
-		model.setTables(getTables(model.getType()));
+		model.setProgressBar(progressBar);
+		model.setProgressLabel(progressValueLabel);
+	}
+
+	private List<? extends DasTable> getSelectionTables(StartType startType) {
+		return getTables(startType).stream()
+								   .filter(table -> !unSelectTables.contains(table))
+								   .collect(Collectors.toList());
 	}
 
 	/**
@@ -452,38 +479,45 @@ public class DataTransferDialogWrapper extends JDialog {
 		tableCheckboxTree.addCheckboxTreeListener(new CheckboxTreeListener() {
 			@Override
 			public void nodeStateChanged(@NotNull CheckedTreeNode node) {
-				int rowCount = tableList.size();
-				boolean isRoot = true;
+//				int     rowCount = tableList.size();
+//				boolean isRoot   = true;
 				if (!node.isRoot()) {
-					isTreeRoot = false;
-					boolean checked = node.isChecked();
-					if (checked) tableTreeSelectionCount++;
-					else tableTreeSelectionCount--;
-					if (tableTreeSelectionCount < 0)
-						tableTreeSelectionCount = 0;
-					if (tableTreeSelectionCount > rowCount) {
-						tableTreeSelectionCount = rowCount;
-						if (!checked) {
-							tableTreeSelectionCount--;
-						}
-					}
-//					root.setUserObject(UiUtil.getTableRootNodeText(tableTreeSelectionCount, rowCount));
-					isRoot = false;
-				} else if (!isTreeRoot) {
-					isTreeRoot = true;
-					return;
-				}
-				if (isRoot) {
-					isTreeRoot = true;
-					if (!isCheckedAll) {
-						tableTreeSelectionCount = tableList.size();
+//					isTreeRoot = false;
+//					boolean checked = node.isChecked();
+//					if (checked) tableTreeSelectionCount++;
+//					else tableTreeSelectionCount--;
+//					if (tableTreeSelectionCount < 0)
+//						tableTreeSelectionCount = 0;
+//					if (tableTreeSelectionCount > rowCount) {
+//						tableTreeSelectionCount = rowCount;
+//						if (!checked) {
+//							tableTreeSelectionCount--;
+//						}
+//					}
+////					root.setUserObject(UiUtil.getTableRootNodeText(tableTreeSelectionCount, rowCount));
+//					isRoot = false;
+					DasTable table = (DasTable) node.getUserObject();
+					if (node.isChecked()) {
+						unSelectTables.remove(table);
 					} else {
-						tableTreeSelectionCount = 0;
+						unSelectTables.add(table);
 					}
-//					root.setUserObject(UiUtil.getTableRootNodeText(tableTreeSelectionCount, rowCount));
-					isCheckedAll = !isCheckedAll;
 				}
-				tableCheckboxTree.updateUI();
+//				else if (!isTreeRoot) {
+//					isTreeRoot = true;
+//					return;
+//				}
+//				if (isRoot) {
+//					isTreeRoot = true;
+//					if (!isCheckedAll) {
+//						tableTreeSelectionCount = tableList.size();
+//					} else {
+//						tableTreeSelectionCount = 0;
+//					}
+////					root.setUserObject(UiUtil.getTableRootNodeText(tableTreeSelectionCount, rowCount));
+//					isCheckedAll = !isCheckedAll;
+//				}
+//				tableCheckboxTree.updateUI();
 //				isChildRoot = !isChildRoot;
 			}
 		});
@@ -507,7 +541,7 @@ public class DataTransferDialogWrapper extends JDialog {
 	 * @return 表集合
 	 */
 	private List<? extends DasTable> getTables(StartType startType) {
-		List<? extends DasTable> tableList = Collections.emptyList();
+		List<? extends DasTable> tableList = null;
 		if (StartType.SELECT.equals(startType)) {
 			String db = (String) sourceDbComboBox.getSelectedItem();
 			if (UiUtil.isSelectText(db)) {
@@ -518,11 +552,18 @@ public class DataTransferDialogWrapper extends JDialog {
 			} else if (StringUtils.isNotEmpty(db)) {
 				tableList = DataSourceCache.getTables(db);
 			}
+			if (Objects.isNull(tableList)) {
+				tableList = Collections.emptyList();
+			}
 			this.tableList = tableList;
 		} else if (StartType.OPTIONS.equals(startType)) {
-			tableList = this.tableList;
+			if (Objects.isNull(this.tableList)) {
+				tableList = Collections.emptyList();
+			} else {
+				tableList = this.tableList;
+			}
 		}
-		tableTreeSelectionCount = tableList.size();
+//		tableTreeSelectionCount = tableList.size();
 		return tableList;
 	}
 

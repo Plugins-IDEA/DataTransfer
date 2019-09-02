@@ -414,7 +414,7 @@
                       </grid>
                     </children>
                   </grid>
-                  <grid id="cb7a7" layout-manager="GridLayoutManager" row-count="2" column-count="1" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
+                  <grid id="cb7a7" layout-manager="GridLayoutManager" row-count="2" column-count="2" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
                     <margin top="0" left="8" bottom="0" right="0"/>
                     <constraints>
                       <tabbedpane title="EventLog"/>
@@ -437,7 +437,7 @@
                       </component>
                       <scrollpane id="d4131" binding="eventLogScrollPane">
                         <constraints>
-                          <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="7" hsize-policy="7" anchor="0" fill="3" indent="0" use-parent-layout="false"/>
+                          <grid row="0" column="0" row-span="1" col-span="2" vsize-policy="7" hsize-policy="7" anchor="0" fill="3" indent="0" use-parent-layout="false"/>
                         </constraints>
                         <properties/>
                         <border type="none"/>
@@ -451,6 +451,14 @@
                           </component>
                         </children>
                       </scrollpane>
+                      <component id="24d35" class="javax.swing.JLabel" binding="progressValueLabel">
+                        <constraints>
+                          <grid row="1" column="1" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
+                        </constraints>
+                        <properties>
+                          <text value="0%"/>
+                        </properties>
+                      </component>
                     </children>
                   </grid>
                 </children>

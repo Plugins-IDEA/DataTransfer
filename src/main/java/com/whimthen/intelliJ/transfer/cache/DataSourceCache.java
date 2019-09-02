@@ -4,6 +4,7 @@ import com.intellij.database.model.DasNamespace;
 import com.intellij.database.model.DasTable;
 import com.intellij.database.psi.DbDataSource;
 import com.intellij.database.util.DasUtil;
+import com.intellij.database.util.DbImplUtil;
 import com.intellij.util.containers.JBIterable;
 import com.whimthen.intelliJ.transfer.utils.GlobalUtil;
 import org.jetbrains.annotations.NotNull;
@@ -36,6 +37,9 @@ public class DataSourceCache {
 	 * @param dataSource 数据源
 	 */
 	public static void add(@NotNull DbDataSource dataSource) {
+		DbImplUtil.getLocalDataSource(dataSource).removeListener(e -> {
+			dataSourceCache.remove(dataSource.getName());
+		});
 		JBIterable<? extends DasNamespace> schemas = DasUtil.getSchemas(dataSource);
 		schemas.forEach(schema -> {
 			schemaCache.put(schema.getName(), schema);

@@ -1,7 +1,12 @@
 package com.whimthen.intelliJ.transfer.db;
 
-import com.android.internal.util.FunctionalUtils;
+import com.intellij.database.dataSource.LocalDataSource;
 import com.intellij.database.model.DasTable;
+import com.intellij.database.psi.DbDataSource;
+import com.intellij.database.util.DasUtil;
+import com.intellij.database.util.DbImplUtil;
+import com.whimthen.intelliJ.transfer.RunnableFunction;
+import com.whimthen.intelliJ.transfer.cache.DataSourceCache;
 import com.whimthen.intelliJ.transfer.model.DataBaseInfo;
 import com.whimthen.intelliJ.transfer.model.TransferModel;
 import com.whimthen.intelliJ.transfer.tasks.ThreadContainer;
@@ -30,12 +35,18 @@ public class DataBaseOperator {
 	public static void transfer(TransferModel model) {
 		List<? extends DasTable> tables = model.getTables();
 		if (Objects.nonNull(tables) && !tables.isEmpty()) {
+			DbDataSource dbDataSource = DataSourceCache.get(model.getSourceConn());
+			LocalDataSource localDataSource = DbImplUtil.getLocalDataSource(dbDataSource);
 			ThreadContainer.getInstance().run(e -> model.getEvenLog().append(e.getMessage()));
 			for (int i = 0; i < tables.size(); i++) {
 				DasTable table = tables.get(i);
 				final boolean isEnd = i == tables.size() - 1;
-				FunctionalUtils.ThrowingRunnable throwingRunnable = () -> {
-					model.getEvenLog().append(log(table.getName() + GlobalUtil.getLineSeparator()));
+				RunnableFunction runnable = () -> {
+					String content = table.getName();
+					if (!isEnd) {
+						content += GlobalUtil.getLineSeparator();
+					}
+					model.getEvenLog().append(log(content));
 					UiUtil.scrollDown(model.getEvenLog());
 					try {
 						TimeUnit.MILLISECONDS.sleep(10);
@@ -46,7 +57,7 @@ public class DataBaseOperator {
 						UiUtil.setButtonEnable(model.getEnableButtons(), true);
 					}
 				};
-				ThreadContainer.getInstance().log(throwingRunnable);
+				ThreadContainer.getInstance().log(runnable);
 			}
 		} else {
 			UiUtil.setButtonEnable(model.getEnableButtons(), true);

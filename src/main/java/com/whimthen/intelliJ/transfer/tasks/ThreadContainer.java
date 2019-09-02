@@ -1,6 +1,6 @@
 package com.whimthen.intelliJ.transfer.tasks;
 
-import com.android.internal.util.FunctionalUtils;
+import com.whimthen.intelliJ.transfer.RunnableFunction;
 
 import java.util.Objects;
 import java.util.concurrent.ExecutorService;
@@ -14,7 +14,7 @@ import java.util.function.Consumer;
  */
 public class ThreadContainer {
 
-	private LinkedBlockingQueue<FunctionalUtils.ThrowingRunnable> queue;
+	private LinkedBlockingQueue<RunnableFunction> queue;
 	private ExecutorService service;
 
 	private ThreadContainer() {
@@ -38,7 +38,7 @@ public class ThreadContainer {
 		getService().submit(() -> {
 			while (true) {
 				try {
-					FunctionalUtils.ThrowingRunnable function = queue.take();
+					RunnableFunction function = queue.take();
 					function.run();
 				} catch (Exception e) {
 					consumer.accept(e);
@@ -55,7 +55,7 @@ public class ThreadContainer {
 		return ThreadContainerHolder.INSTANCE;
 	}
 
-	public void log(FunctionalUtils.ThrowingRunnable function) {
+	public void log(RunnableFunction function) {
 		queue.offer(function);
 	}
 

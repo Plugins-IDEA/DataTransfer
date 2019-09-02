@@ -1,9 +1,9 @@
 package com.whimthen.intelliJ.transfer.model;
 
+import com.intellij.database.model.DasDataSource;
 import com.intellij.database.model.DasTable;
 
-import javax.swing.JButton;
-import javax.swing.JTextArea;
+import javax.swing.*;
 import java.util.List;
 
 /**
@@ -14,6 +14,8 @@ public class TransferModel {
 
 	private JTextArea     evenLog;
 	private List<JButton> enableButtons;
+	private JLabel progressLabel;
+	private JProgressBar progressBar;
 
 	private StartType type;
 
@@ -66,6 +68,22 @@ public class TransferModel {
 	private boolean useDDLFromShowCreateTable;
 	private boolean useSingleTransaction;
 	private boolean dropTargetObjectsBeforeCreate;
+
+	public JLabel getProgressLabel() {
+		return progressLabel;
+	}
+
+	public void setProgressLabel(JLabel progressLabel) {
+		this.progressLabel = progressLabel;
+	}
+
+	public JProgressBar getProgressBar() {
+		return progressBar;
+	}
+
+	public void setProgressBar(JProgressBar progressBar) {
+		this.progressBar = progressBar;
+	}
 
 	public JTextArea getEvenLog() {
 		return evenLog;
