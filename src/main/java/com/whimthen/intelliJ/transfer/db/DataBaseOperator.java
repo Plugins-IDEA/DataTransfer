@@ -3,9 +3,8 @@ package com.whimthen.intelliJ.transfer.db;
 import com.intellij.database.dataSource.LocalDataSource;
 import com.intellij.database.model.DasTable;
 import com.intellij.database.psi.DbDataSource;
-import com.intellij.database.util.DasUtil;
 import com.intellij.database.util.DbImplUtil;
-import com.whimthen.intelliJ.transfer.RunnableFunction;
+import com.whimthen.intelliJ.transfer.utils.RunnableFunction;
 import com.whimthen.intelliJ.transfer.cache.DataSourceCache;
 import com.whimthen.intelliJ.transfer.model.DataBaseInfo;
 import com.whimthen.intelliJ.transfer.model.TransferModel;
@@ -36,6 +35,8 @@ public class DataBaseOperator {
 		List<? extends DasTable> tables = model.getTables();
 		if (Objects.nonNull(tables) && !tables.isEmpty()) {
 			DbDataSource dbDataSource = DataSourceCache.get(model.getSourceConn());
+			// 所有表的数据量总和
+			long         dataLength = getAllDataLength(dbDataSource);
 			LocalDataSource localDataSource = DbImplUtil.getLocalDataSource(dbDataSource);
 			ThreadContainer.getInstance().run(e -> model.getEvenLog().append(e.getMessage()));
 			for (int i = 0; i < tables.size(); i++) {
@@ -62,6 +63,12 @@ public class DataBaseOperator {
 		} else {
 			UiUtil.setButtonEnable(model.getEnableButtons(), true);
 		}
+	}
+
+	private static long getAllDataLength(DbDataSource dataSource) {
+		TableInfoSupplier supplier = OperatorFactory.createTableInfoSupplier(dataSource);
+		supplier.getSizeByConn();
+		return 0;
 	}
 
 	private static String log(String content) {

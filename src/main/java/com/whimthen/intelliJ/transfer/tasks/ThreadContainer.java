@@ -1,6 +1,6 @@
 package com.whimthen.intelliJ.transfer.tasks;
 
-import com.whimthen.intelliJ.transfer.RunnableFunction;
+import com.whimthen.intelliJ.transfer.utils.RunnableFunction;
 
 import java.util.Objects;
 import java.util.concurrent.ExecutorService;
@@ -15,7 +15,7 @@ import java.util.function.Consumer;
 public class ThreadContainer {
 
 	private LinkedBlockingQueue<RunnableFunction> queue;
-	private ExecutorService service;
+	private ExecutorService                       service;
 
 	private ThreadContainer() {
 		this.queue = new LinkedBlockingQueue<>();

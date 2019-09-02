@@ -1,4 +1,4 @@
-package com.whimthen.intelliJ.transfer;
+package com.whimthen.intelliJ.transfer.utils;
 
 /**
  * @author whimthen

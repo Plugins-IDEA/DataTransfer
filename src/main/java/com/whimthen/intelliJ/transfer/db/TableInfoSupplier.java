@@ -7,10 +7,8 @@ import java.util.Map;
  * @version 1.0.0
  * @since 1.0.0
  */
-public class TableInfoSupplier {
+public interface TableInfoSupplier {
 
-	public static Map getSizeByConn() {
-		return null;
-	}
+	Map getSizeByConn();
 
 }
