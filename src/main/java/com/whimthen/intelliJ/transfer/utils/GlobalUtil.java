@@ -1,5 +1,7 @@
 package com.whimthen.intelliJ.transfer.utils;
 
+import org.apache.commons.lang.StringUtils;
+
 import javax.swing.JTextField;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
@@ -52,6 +54,85 @@ public class GlobalUtil {
 				}
 			});
 		});
+	}
+
+	/**
+	 * 复制字符串
+	 *
+	 * @param resource 需要重复的字符串资源
+	 * @param count    重复之后共次数
+	 * @return 重复之后的字符串
+	 */
+	public static String repeat(String resource, int count) {
+		if (StringUtils.isEmpty(resource) || count <= 0) {
+			return resource;
+		}
+		int len = resource.length();
+		if (len == 0 || count == 0) {
+			return "";
+		}
+		if (count == 1) {
+			return resource;
+		}
+		if (Integer.MAX_VALUE / count < len) {
+			throw new OutOfMemoryError("Repeating " + len + " bytes String " + count +
+										   " times will produce a String exceeding maximum size.");
+		}
+		StringBuilder repeatString = new StringBuilder(resource);
+		for (int i = 1; i < count; i++) {
+			repeatString.append(resource);
+		}
+		return repeatString.toString();
+	}
+
+	/**
+	 * 缩进字符串
+	 *
+	 * @param source      待缩进的字符串
+	 * @param indentCount 缩进数(空格的数目)
+	 * @return 缩进后的字符串
+	 */
+	public static String indent(String source, int indentCount) {
+		if (indentCount > 0 && StringUtils.isNotEmpty(source)) {
+			String indent = repeat(" ", indentCount);
+			source = indent + source;
+			source = source.replace("\n" + indent, "\n");
+		}
+		return source;
+	}
+
+	/**
+	 * 向日志中写入异常信息
+	 * Write exception information to the log
+	 *
+	 * @param exception 异常
+	 *                  exception
+	 */
+	public static String getMessage(Throwable exception) {
+		StringBuilder msg = new StringBuilder();
+		while (Objects.nonNull(exception)) {
+			msg.append(exception.getClass().getCanonicalName())
+			   .append(": ")
+			   .append(exception.getMessage())
+			   .append(getLineSeparator())
+			   .append(indent(getStackElementsMessage(exception.getStackTrace()), 6));
+			exception = exception.getCause();
+		}
+		return msg.toString();
+	}
+	/**
+	 * 获取当前栈信息
+	 *
+	 * @param stackTraceElements 栈信息对象数组
+	 * @return 当前栈信息
+	 */
+	private static String getStackElementsMessage(StackTraceElement[] stackTraceElements) {
+		StringBuilder stackInfo = new StringBuilder();
+		for (StackTraceElement stackTraceElement : stackTraceElements) {
+			stackInfo.append(stackTraceElement.toString());
+			stackInfo.append(getLineSeparator());
+		}
+		return stackInfo.toString().trim();
 	}
 
 }

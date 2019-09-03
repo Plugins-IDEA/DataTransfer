@@ -7,6 +7,6 @@ package com.whimthen.intelliJ.transfer.utils;
 @FunctionalInterface
 public interface RunnableFunction {
 
-	void run();
+	void run() throws Exception;
 
 }

@@ -12,10 +12,8 @@ import java.util.List;
  */
 public class TransferModel {
 
-	private JTextArea     evenLog;
 	private List<JButton> enableButtons;
 	private JLabel progressLabel;
-	private JProgressBar progressBar;
 
 	private StartType type;
 
@@ -75,22 +73,6 @@ public class TransferModel {
 
 	public void setProgressLabel(JLabel progressLabel) {
 		this.progressLabel = progressLabel;
-	}
-
-	public JProgressBar getProgressBar() {
-		return progressBar;
-	}
-
-	public void setProgressBar(JProgressBar progressBar) {
-		this.progressBar = progressBar;
-	}
-
-	public JTextArea getEvenLog() {
-		return evenLog;
-	}
-
-	public void setEvenLog(JTextArea evenLog) {
-		this.evenLog = evenLog;
 	}
 
 	public List<JButton> getEnableButtons() {

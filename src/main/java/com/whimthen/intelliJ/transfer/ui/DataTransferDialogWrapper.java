@@ -5,6 +5,7 @@ import com.intellij.database.model.DasNamespace;
 import com.intellij.database.model.DasTable;
 import com.intellij.database.model.basic.BasicModTable;
 import com.intellij.database.model.basic.BasicTable;
+import com.intellij.icons.AllIcons;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.Messages;
 import com.intellij.ui.CheckboxTree;
@@ -144,7 +145,9 @@ public class DataTransferDialogWrapper extends JDialog {
 		targetConnComboBox.addItemListener(e -> addDbComboBoxItem(targetConnComboBox, targetDbComboBox));
 
 		startButton.addActionListener(startListener());
+		startButton.setIcon(AllIcons.Actions.Execute);
 		optionsStartButton.addActionListener(optionsStartListener());
+		optionsStartButton.setIcon(AllIcons.Actions.Execute);
 		testSourceConnectionButton.addActionListener(testConnectionListener(ConnectionType.SOURCE));
 		testTargetConnectionButton.addActionListener(testConnectionListener(ConnectionType.TARGET));
 
@@ -177,7 +180,7 @@ public class DataTransferDialogWrapper extends JDialog {
 		addJCheckboxActionListener(getCreateTablesJCheckbox(), createTablesAllSelectedListener());
 		addJCheckboxActionListener(getInsertRecordsJCheckbox(), insertRecordsAllSelectedListener());
 
-		progressBar.setValue(20);
+		DataBaseOperator.setOperator(eventLogArea, progressBar);
 
 		buttonOK.addActionListener(e -> onOK());
 		buttonCancel.addActionListener(e -> onCancel());
@@ -224,7 +227,7 @@ public class DataTransferDialogWrapper extends JDialog {
 			info.setUser(user);
 			info.setPassword(password);
 			info.setDatabase(database);
-			boolean isSuccess = DataBaseOperator.testConnection(info);
+			boolean isSuccess = DataBaseOperator.getInstance().testConnection(info);
 			// TODO 暂时弹窗提示测试连接是否成功, 后续改为按钮前面显示, 更为直观
 			if (!isSuccess) {
 				Messages.showErrorDialog("The Database connect fail", "Test Connection Result");
@@ -268,7 +271,7 @@ public class DataTransferDialogWrapper extends JDialog {
 			model.setEnableButtons(actionButtons);
 			model.setTables(selectionTables);
 			setModelOtherProperties(model);
-			DataBaseOperator.transfer(model);
+			DataBaseOperator.getInstance().transfer(model);
 		};
 	}
 
@@ -308,7 +311,7 @@ public class DataTransferDialogWrapper extends JDialog {
 			model.setEnableButtons(actionButtons);
 			model.setTables(selectionTables);
 			setModelOtherProperties(model);
-			DataBaseOperator.transfer(model);
+			DataBaseOperator.getInstance().transfer(model);
 		};
 	}
 
@@ -318,7 +321,6 @@ public class DataTransferDialogWrapper extends JDialog {
 	 * @param model 转换实体
 	 */
 	private void setModelOtherProperties(TransferModel model) {
-		model.setEvenLog(eventLogArea);
 		boolean createTablesCheckBoxSelected = createTablesCheckBox.isSelected();
 		model.setCreateTables(createTablesCheckBoxSelected);
 		if (createTablesCheckBoxSelected) {
@@ -348,7 +350,6 @@ public class DataTransferDialogWrapper extends JDialog {
 		model.setUseDDLFromShowCreateTable(useDDLFromShowCreateTableCheckBox.isSelected());
 		model.setUseSingleTransaction(useSingleTransactionCheckBox.isSelected());
 		model.setDropTargetObjectsBeforeCreate(dropTargetObjectsBeforeCreateCheckBox.isSelected());
-		model.setProgressBar(progressBar);
 		model.setProgressLabel(progressValueLabel);
 	}
 
