@@ -5,6 +5,7 @@ import org.apache.commons.lang.StringUtils;
 import javax.swing.JTextField;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
+import java.lang.reflect.Field;
 import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
@@ -96,7 +97,6 @@ public class GlobalUtil {
 		if (indentCount > 0 && StringUtils.isNotEmpty(source)) {
 			String indent = repeat(" ", indentCount);
 			source = indent + source;
-			source = source.replace("\n" + indent, "\n");
 		}
 		return source;
 	}
@@ -129,10 +129,18 @@ public class GlobalUtil {
 	private static String getStackElementsMessage(StackTraceElement[] stackTraceElements) {
 		StringBuilder stackInfo = new StringBuilder();
 		for (StackTraceElement stackTraceElement : stackTraceElements) {
-			stackInfo.append(stackTraceElement.toString());
+			stackInfo.append(indent(stackTraceElement.toString(), 6));
 			stackInfo.append(getLineSeparator());
 		}
 		return stackInfo.toString().trim();
+	}
+
+	public static void setFieldValue(Object object, String fieldName, Object value) throws NoSuchFieldException, IllegalAccessException {
+		Field field = object.getClass().getDeclaredField(fieldName);
+		boolean accessible = field.isAccessible();
+		field.setAccessible(true);
+		field.set(object, value);
+		field.setAccessible(accessible);
 	}
 
 }

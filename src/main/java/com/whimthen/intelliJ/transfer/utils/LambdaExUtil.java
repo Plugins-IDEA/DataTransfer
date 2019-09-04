@@ -2,6 +2,7 @@ package com.whimthen.intelliJ.transfer.utils;
 
 import java.io.IOException;
 import java.util.function.BiConsumer;
+import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -28,6 +29,11 @@ public class LambdaExUtil {
     @FunctionalInterface
     public interface FunctionWithExceptions<T, R, E extends Exception> {
         R apply(T t) throws E;
+    }
+
+    @FunctionalInterface
+    public interface BiFunctionWithExceptions<T, S, R, E extends Exception> {
+        R apply(T t, S s) throws E;
     }
 
     @FunctionalInterface
@@ -66,6 +72,18 @@ public class LambdaExUtil {
         return t -> {
             try {
                 return function.apply(t);
+            } catch (Exception exception) {
+                throwAsUnchecked(exception);
+                return null;
+            }
+        };
+    }
+
+    /** .map(rethrowFunction(name -> Class.forName(name))) or .map(rethrowFunction(Class::forName)) */
+    public static <T, S, R, E extends Exception> BiFunction<T, S, R> rethrowBiFunction(BiFunctionWithExceptions<T, S, R, E> function) throws E {
+        return (t, s) -> {
+            try {
+                return function.apply(t, s);
             } catch (Exception exception) {
                 throwAsUnchecked(exception);
                 return null;

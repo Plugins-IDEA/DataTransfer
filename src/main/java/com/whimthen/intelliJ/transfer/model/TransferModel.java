@@ -1,9 +1,7 @@
 package com.whimthen.intelliJ.transfer.model;
 
-import com.intellij.database.model.DasDataSource;
 import com.intellij.database.model.DasTable;
 
-import javax.swing.*;
 import java.util.List;
 
 /**
@@ -11,9 +9,6 @@ import java.util.List;
  * @version 1.0.0
  */
 public class TransferModel {
-
-	private List<JButton> enableButtons;
-	private JLabel progressLabel;
 
 	private StartType type;
 
@@ -66,22 +61,6 @@ public class TransferModel {
 	private boolean useDDLFromShowCreateTable;
 	private boolean useSingleTransaction;
 	private boolean dropTargetObjectsBeforeCreate;
-
-	public JLabel getProgressLabel() {
-		return progressLabel;
-	}
-
-	public void setProgressLabel(JLabel progressLabel) {
-		this.progressLabel = progressLabel;
-	}
-
-	public List<JButton> getEnableButtons() {
-		return enableButtons;
-	}
-
-	public void setEnableButtons(List<JButton> enableButtons) {
-		this.enableButtons = enableButtons;
-	}
 
 	public StartType getType() {
 		return type;

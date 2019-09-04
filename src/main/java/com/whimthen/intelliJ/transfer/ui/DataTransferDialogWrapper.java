@@ -1,10 +1,7 @@
 package com.whimthen.intelliJ.transfer.ui;
 
-import com.intellij.database.dialects.mysql.model.MysqlImplModel;
 import com.intellij.database.model.DasNamespace;
 import com.intellij.database.model.DasTable;
-import com.intellij.database.model.basic.BasicModTable;
-import com.intellij.database.model.basic.BasicTable;
 import com.intellij.icons.AllIcons;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.Messages;
@@ -14,7 +11,7 @@ import com.intellij.ui.CheckedTreeNode;
 import com.intellij.ui.JBColor;
 import com.intellij.util.containers.JBIterable;
 import com.whimthen.intelliJ.transfer.cache.DataSourceCache;
-import com.whimthen.intelliJ.transfer.db.DataBaseOperator;
+import com.whimthen.intelliJ.transfer.db.TransferOperator;
 import com.whimthen.intelliJ.transfer.model.ConnectionType;
 import com.whimthen.intelliJ.transfer.model.DataBaseInfo;
 import com.whimthen.intelliJ.transfer.model.StartType;
@@ -180,7 +177,7 @@ public class DataTransferDialogWrapper extends JDialog {
 		addJCheckboxActionListener(getCreateTablesJCheckbox(), createTablesAllSelectedListener());
 		addJCheckboxActionListener(getInsertRecordsJCheckbox(), insertRecordsAllSelectedListener());
 
-		DataBaseOperator.setOperator(eventLogArea, progressBar);
+		TransferOperator.setOperator(eventLogArea, progressBar, getActionButtons(), progressValueLabel);
 
 		buttonOK.addActionListener(e -> onOK());
 		buttonCancel.addActionListener(e -> onCancel());
@@ -227,7 +224,7 @@ public class DataTransferDialogWrapper extends JDialog {
 			info.setUser(user);
 			info.setPassword(password);
 			info.setDatabase(database);
-			boolean isSuccess = DataBaseOperator.getInstance().testConnection(info);
+			boolean isSuccess = TransferOperator.getInstance().testConnection(info);
 			// TODO 暂时弹窗提示测试连接是否成功, 后续改为按钮前面显示, 更为直观
 			if (!isSuccess) {
 				Messages.showErrorDialog("The Database connect fail", "Test Connection Result");
@@ -268,10 +265,9 @@ public class DataTransferDialogWrapper extends JDialog {
 			model.setTargetUser(targetUserTextField.getText());
 			model.setTargetPwd(targetPwdTextField.getText());
 			model.setTargetDb(targetDbTextField.getText());
-			model.setEnableButtons(actionButtons);
 			model.setTables(selectionTables);
 			setModelOtherProperties(model);
-			DataBaseOperator.getInstance().transfer(model);
+			TransferOperator.getInstance().transfer(model);
 		};
 	}
 
@@ -308,10 +304,9 @@ public class DataTransferDialogWrapper extends JDialog {
 			model.setTargetConn((String) targetConnComboBox.getSelectedItem());
 			model.setSourceDb((String) sourceDbComboBox.getSelectedItem());
 			model.setTargetDb((String) targetDbComboBox.getSelectedItem());
-			model.setEnableButtons(actionButtons);
 			model.setTables(selectionTables);
 			setModelOtherProperties(model);
-			DataBaseOperator.getInstance().transfer(model);
+			TransferOperator.getInstance().transfer(model);
 		};
 	}
 
@@ -350,7 +345,6 @@ public class DataTransferDialogWrapper extends JDialog {
 		model.setUseDDLFromShowCreateTable(useDDLFromShowCreateTableCheckBox.isSelected());
 		model.setUseSingleTransaction(useSingleTransactionCheckBox.isSelected());
 		model.setDropTargetObjectsBeforeCreate(dropTargetObjectsBeforeCreateCheckBox.isSelected());
-		model.setProgressLabel(progressValueLabel);
 	}
 
 	private List<? extends DasTable> getSelectionTables(StartType startType) {
