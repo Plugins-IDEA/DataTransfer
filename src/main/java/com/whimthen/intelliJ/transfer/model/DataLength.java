@@ -1,5 +1,6 @@
 package com.whimthen.intelliJ.transfer.model;
 
+import java.math.BigDecimal;
 import java.util.Map;
 
 /**
@@ -9,22 +10,22 @@ import java.util.Map;
  */
 public class DataLength {
 
-	private long totalLength;
-	private Map<String, Long> tableLength;
+	private BigDecimal          totalLength;
+	private Map<String, SingleTableDataLength> tableLength;
 
-	public long getTotalLength() {
+	public BigDecimal getTotalLength() {
 		return totalLength;
 	}
 
-	public void setTotalLength(long totalLength) {
+	public void setTotalLength(BigDecimal totalLength) {
 		this.totalLength = totalLength;
 	}
 
-	public Map<String, Long> getTableLength() {
+	public Map<String, SingleTableDataLength> getTableLength() {
 		return tableLength;
 	}
 
-	public void setTableLength(Map<String, Long> tableLength) {
+	public void setTableLength(Map<String, SingleTableDataLength> tableLength) {
 		this.tableLength = tableLength;
 	}
 
