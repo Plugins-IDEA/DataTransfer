@@ -453,9 +453,14 @@
                       </scrollpane>
                       <component id="24d35" class="javax.swing.JLabel" binding="progressValueLabel">
                         <constraints>
-                          <grid row="1" column="1" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
+                          <grid row="1" column="1" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="4" fill="0" indent="0" use-parent-layout="false">
+                            <minimum-size width="55" height="-1"/>
+                            <preferred-size width="55" height="-1"/>
+                            <maximum-size width="55" height="-1"/>
+                          </grid>
                         </constraints>
                         <properties>
+                          <horizontalAlignment value="4"/>
                           <text value="0%"/>
                         </properties>
                       </component>

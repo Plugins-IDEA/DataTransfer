@@ -6,6 +6,7 @@ import com.intellij.util.Consumer;
 import com.whimthen.intelliJ.transfer.cache.DataSourceCache;
 import com.whimthen.intelliJ.transfer.model.DataBaseInfo;
 import com.whimthen.intelliJ.transfer.model.DataLength;
+import com.whimthen.intelliJ.transfer.model.SingleTableDataLength;
 import com.whimthen.intelliJ.transfer.model.TransferModel;
 import com.whimthen.intelliJ.transfer.tasks.ThreadContainer;
 import com.whimthen.intelliJ.transfer.utils.GlobalUtil;
@@ -16,6 +17,7 @@ import javax.swing.JButton;
 import javax.swing.JLabel;
 import javax.swing.JProgressBar;
 import javax.swing.JTextArea;
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
@@ -36,6 +38,7 @@ public class TransferOperator {
 	private        Consumer<Throwable> exceptionHandler;
 	private        List<JButton>       enableButtons;
 	private        JLabel              progressLabel;
+	private        double          progressVal;
 
 	private TransferOperator(JTextArea eventLogPane, JProgressBar progressBar, List<JButton> enableButtons, JLabel progressLabel) {
 		this.eventLogPane = eventLogPane;
@@ -52,49 +55,21 @@ public class TransferOperator {
 	 */
 	public void transfer(TransferModel model) {
 		ex(() -> {
+			progressVal = 0;
+			progressLabel.setText(progressVal + "%");
+			progressLabel.updateUI();
 			List<? extends DasTable> tables = model.getTables();
 			if (Objects.nonNull(tables) && !tables.isEmpty()) {
-				DbDataSource dataSource = DataSourceCache.get(model.getSourceConn());
-				TableInfoSupplier supplier = OperatorFactory.createTableInfoSupplier(dataSource);
+				DbDataSource      dataSource = DataSourceCache.get(model.getSourceConn());
+				TableInfoSupplier supplier   = OperatorFactory.createTableInfoSupplier(dataSource);
 				// 所有表的数据量总和
 				DataLength dataLength = supplier.getSizeFromTables(dataSource, tables);
-//				supplier.getConnection(dataSource).ifPresent(LambdaExUtil.rethrowConsumer(connection -> {
-//					if (connection.isClosed()) {
-//						return;
-//					}
-//					PreparedStatement preparedStatement = connection.prepareStatement("SELECT TABLE_NAME tableName, AVG_ROW_LENGTH avgLength, DATA_LENGTH dataLength FROM information_schema.TABLES");
-//					ResultSet         resultSet         = preparedStatement.executeQuery();
-//					while (resultSet.next()) {
-//						Object object = resultSet.getObject(1);
-//						System.out.println(object);
-//					}
-//					System.out.println(resultSet);
-//				}));
-
-//				LocalDataSource localDataSource = DbImplUtil.getLocalDataSource(dataSource);
-//				String          serialize       = localDataSource.getPasswordStorage().serialize();
-//				System.out.println(serialize);
-//				PersistenceConsoleProvider.Runner dataSourceRunner = DatabaseRunners.createDataSourceRunner(dataSource, () -> {
-//
-//				});
-//				dataSourceRunner.run();
-//
-//				Consumer<DatabaseSession> consumer = s -> {
-//					boolean connected = s.isConnected();
-//					System.out.println(connected);
-//				};
-//				List<DatabaseSession> sessions = DatabaseSessionManager.getSessions(dataSource.getProject(), DbImplUtil.getLocalDataSource(dataSource));
-//				JBIterable<PersistenceConsoleProvider.Runner> perSession = JBIterable.from(sessions).map((s) -> {
-//					return DatabaseRunners.createSessionRunner(s, () -> {
-//						consumer.consume(s);
-//					}, false);
-//				});
-//				perSession.get(0).run();
 
 				ThreadContainer.getInstance().run(e -> eventLogPane.append(log(GlobalUtil.getMessage(e))));
 				for (int i = 0; i < tables.size(); i++) {
-					DasTable table = tables.get(i);
-					final boolean isEnd = i == tables.size() - 1;
+					DasTable      table     = tables.get(i);
+					String        tableName = table.getName();
+					final boolean isEnd     = i == tables.size() - 1;
 					RunnableFunction runnable = () -> {
 						String content = table.getName();
 						if (!isEnd) {
@@ -110,6 +85,7 @@ public class TransferOperator {
 						if (isEnd) {
 							UiUtil.setButtonEnable(enableButtons, true);
 						}
+						updateProgressFromTable(dataLength.getTotalLength(), dataLength.getTableLength().get(tableName));
 					};
 					ThreadContainer.getInstance().log(runnable);
 				}
@@ -117,6 +93,21 @@ public class TransferOperator {
 				UiUtil.setButtonEnable(enableButtons, true);
 			}
 		});
+	}
+
+	private void updateProgressFromTable(BigDecimal total, SingleTableDataLength singleDataLength) {
+		if (Objects.nonNull(total) && Objects.nonNull(singleDataLength)) {
+			BigDecimal tableLength = singleDataLength.getDataLength();
+//			BigDecimal singleTableProgress = tableLength.divide(total, BigDecimal.ROUND_DOWN);
+			double progress = tableLength.doubleValue() / total.doubleValue() * 100;
+			progressVal += progress;
+			progressLabel.setText(new BigDecimal(progressVal).setScale(2, BigDecimal.ROUND_HALF_UP).toPlainString() + "%");
+//			progressLabel.updateUI();
+		}
+	}
+
+	private void updateProgressLabelValFromLine(BigDecimal total, SingleTableDataLength singleDataLength) {
+
 	}
 
 	private String log(String content) {

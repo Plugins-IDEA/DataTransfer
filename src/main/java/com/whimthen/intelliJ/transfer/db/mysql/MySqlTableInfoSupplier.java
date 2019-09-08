@@ -7,6 +7,7 @@ import com.whimthen.intelliJ.transfer.db.TableInfoSupplier;
 import com.whimthen.intelliJ.transfer.model.DataLength;
 import com.whimthen.intelliJ.transfer.model.SingleTableDataLength;
 import com.whimthen.intelliJ.transfer.utils.LambdaExUtil;
+import org.apache.commons.lang.StringUtils;
 
 import java.math.BigDecimal;
 import java.util.HashMap;
@@ -41,19 +42,24 @@ public class MySqlTableInfoSupplier implements TableInfoSupplier {
 						SingleTableDataLength singleTableDataLength = new SingleTableDataLength();
 						for (int i = 1; i <= columnCount; i++) {
 							Object value = resultSet.getObject(i);
+							BigDecimal length = null;
+							if (i != 1) {
+								length = Objects.nonNull(value) && StringUtils.isNotEmpty(value.toString())
+									? new BigDecimal(value.toString()) : BigDecimal.ZERO;
+							}
 							if (i == 1) {
 								tableName = value.toString();
 							} else if (i == 2) {
-								singleTableDataLength.setAvgLength((BigDecimal) value);
+								singleTableDataLength.setAvgLength(length);
 							} else {
-								singleTableDataLength.setDataLength((BigDecimal) value);
+								singleTableDataLength.setDataLength(length);
 							}
 						}
 						allTableDataLengthMap.put(tableName, singleTableDataLength);
 					}
 					return allTableDataLengthMap;
 				}), tableNames);
-			dataLength.setTotalLength((BigDecimal) totalDataLengthMap.get("totalDataLength"));
+			dataLength.setTotalLength(new BigDecimal(totalDataLengthMap.get("totalDataLength").toString()));
 			dataLength.setTableLength(tableDataLengthMap);
 		}));
 		return dataLength;
