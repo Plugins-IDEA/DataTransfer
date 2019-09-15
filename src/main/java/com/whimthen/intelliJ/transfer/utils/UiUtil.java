@@ -233,7 +233,7 @@ public class UiUtil {
 		// 设置背景颜色
 		jScrollBar.setBackground(new JBColor(new Color(0XECECEC), new Color(0XECECEC)));
 		// 设置滚轮速度
-		jScrollBar.setUnitIncrement(3);
+		jScrollBar.setUnitIncrement(1);
 		// 设置滚动条宽度
 		jScrollBar.setPreferredSize(new Dimension(10, 10));
 		return jScrollBar;

@@ -432,7 +432,7 @@
                           <inheritsPopupMenu value="false"/>
                           <orientation value="0"/>
                           <stringPainted value="false"/>
-                          <value value="20"/>
+                          <value value="0"/>
                         </properties>
                       </component>
                       <scrollpane id="d4131" binding="eventLogScrollPane">
