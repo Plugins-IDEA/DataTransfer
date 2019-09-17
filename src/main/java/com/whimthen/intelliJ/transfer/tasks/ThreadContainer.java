@@ -14,31 +14,33 @@ import java.util.function.Consumer;
  */
 public class ThreadContainer {
 
-	private LinkedBlockingQueue<RunnableFunction> queue;
-	private ExecutorService                       service;
+	private        LinkedBlockingQueue<RunnableFunction> queue;
+	private        ExecutorService                       service;
+	private static ThreadContainer                       threadContainer;
 
-	private ThreadContainer() {
+	private ThreadContainer(Consumer<Throwable> consumer) {
 		this.queue = new LinkedBlockingQueue<>();
+		this.run(consumer);
 	}
 
 	private ExecutorService getService() {
 		if (Objects.isNull(service) || service.isShutdown()) {
-			service = Executors.newSingleThreadExecutor();
+			this.service = Executors.newSingleThreadExecutor();
 		}
-		return service;
+		return this.service;
 	}
 
 	public void shutdown() {
-		if (Objects.nonNull(service)) {
-			service.shutdown();
+		if (Objects.nonNull(this.service)) {
+			this.service.shutdown();
 		}
 	}
 
-	public void run(Consumer<Throwable> consumer) {
+	private void run(Consumer<Throwable> consumer) {
 		getService().submit(() -> {
 			while (true) {
 				try {
-					RunnableFunction function = queue.take();
+					RunnableFunction function = this.queue.take();
 					function.run();
 				} catch (Exception e) {
 					consumer.accept(e);
@@ -47,16 +49,19 @@ public class ThreadContainer {
 		});
 	}
 
-	private static class ThreadContainerHolder {
-		private static final ThreadContainer INSTANCE = new ThreadContainer();
+	public static ThreadContainer getInstance(Consumer<Throwable> consumer) {
+		if (Objects.isNull(threadContainer)) {
+			synchronized (ThreadContainer.class) {
+				if (Objects.isNull(threadContainer)) {
+					threadContainer = new ThreadContainer(consumer);
+				}
+			}
+		}
+		return threadContainer;
 	}
 
-	public static ThreadContainer getInstance() {
-		return ThreadContainerHolder.INSTANCE;
-	}
-
-	public void log(RunnableFunction function) {
-		queue.offer(function);
+	public void add(RunnableFunction function) {
+		this.queue.offer(function);
 	}
 
 }

@@ -2,7 +2,7 @@ package com.whimthen.intelliJ.transfer.db;
 
 import com.intellij.database.Dbms;
 import com.intellij.database.psi.DbDataSource;
-import com.whimthen.intelliJ.transfer.db.mysql.MySqlTableInfoSupplier;
+import com.whimthen.intelliJ.transfer.db.mysql.MySqlOperatorSupplier;
 
 /**
  * @author whimthen
@@ -11,11 +11,11 @@ import com.whimthen.intelliJ.transfer.db.mysql.MySqlTableInfoSupplier;
  */
 public class OperatorFactory {
 
-	public static TableInfoSupplier createTableInfoSupplier(DbDataSource dataSource) {
-		TableInfoSupplier supplier = null;
-		Dbms              dbms     = dataSource.getDbms();
+	public static OperatorSupplier create(DbDataSource dataSource) throws Exception {
+		OperatorSupplier supplier = null;
+		Dbms             dbms     = dataSource.getDbms();
 		if (dbms.isMysql()) {
-			supplier = new MySqlTableInfoSupplier();
+			supplier = new MySqlOperatorSupplier(dataSource);
 		}
 		return supplier;
 	}

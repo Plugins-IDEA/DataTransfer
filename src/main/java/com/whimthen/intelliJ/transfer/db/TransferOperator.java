@@ -39,16 +39,14 @@ public class TransferOperator {
 	private        Consumer<Throwable> exceptionHandler;
 	private        List<JButton>       enableButtons;
 	private        JLabel              progressLabel;
-	private        BigDecimal          progressVal;
 	private        BigDecimal          tableLength = new BigDecimal(0);
-	private        BigDecimal          oneHundredPercent = new BigDecimal(100);
 
 	private TransferOperator(JTextArea eventLogPane, JProgressBar progressBar, List<JButton> enableButtons, JLabel progressLabel) {
 		this.eventLogPane = eventLogPane;
 		this.progressBar = progressBar;
 		this.enableButtons = enableButtons;
 		this.progressLabel = progressLabel;
-		this.exceptionHandler = e -> this.eventLogPane.append(log(GlobalUtil.getMessage(e), false));
+		this.exceptionHandler = e -> logger(GlobalUtil.getMessage(e), false);
 	}
 
 	/**
@@ -58,26 +56,28 @@ public class TransferOperator {
 	 */
 	public void transfer(TransferModel model) {
 		ex(() -> {
-//			progressVal = BigDecimal.ZERO;
 			tableLength = BigDecimal.ZERO;
 			progressLabel.setText("0%");
 			progressBar.setValue(0);
-//			progressLabel.updateUI();
 			List<? extends DasTable> tables = model.getTables();
 			if (Objects.nonNull(tables) && !tables.isEmpty()) {
-				DbDataSource      dataSource = DataSourceCache.get(model.getSourceConn());
-				TableInfoSupplier supplier   = OperatorFactory.createTableInfoSupplier(dataSource);
-				// 所有表的数据量总和
-				DataLength dataLength = supplier.getSizeFromTables(dataSource, tables);
+				DbDataSource     dataSource = DataSourceCache.get(model.getSourceConn());
+				OperatorSupplier supplier   = OperatorFactory.create(dataSource);
+				// 所有表的数据量
+				DataLength dataLength = supplier.getSizeFromTables(tables);
+				supplier.selectDataBase(model.getTargetDb());
+				logger("Choose Database to " + model.getTargetDb(), false);
 
-				ThreadContainer.getInstance().run(exceptionHandler);
 				for (int i = 0; i < tables.size(); i++) {
-					DasTable      table     = tables.get(i);
-					String        tableName = table.getName();
-					final boolean isEnd     = i == tables.size() - 1;
+					final int index = i;
 					RunnableFunction runnable = () -> {
-						String content = table.getName();
-						eventLogPane.append(log(content, isEnd));
+						DasTable table     = tables.get(index);
+						String   tableName = table.getName();
+						boolean  isEnd     = index == tables.size() - 1;
+
+						supplier.createTable();
+						logger("create table " + tableName + " successful!", false);
+						logger(tableName, isEnd);
 						UiUtil.scrollDown(eventLogPane);
 						try {
 							TimeUnit.MILLISECONDS.sleep(10);
@@ -85,56 +85,45 @@ public class TransferOperator {
 							e.printStackTrace();
 						}
 						updateProgressFromTable(dataLength.getTotalLength(), dataLength.getTableLength().get(tableName), isEnd);
-						if (isEnd) {
-							UiUtil.setButtonEnable(enableButtons, true);
-						}
+						if (isEnd) enableButtons();
 					};
-					ThreadContainer.getInstance().log(runnable);
+					ThreadContainer.getInstance(exceptionHandler).add(runnable);
 				}
 			} else {
-				UiUtil.setButtonEnable(enableButtons, true);
+				enableButtons();
 			}
 		});
 	}
 
 	private void updateProgressFromTable(BigDecimal total, SingleTableDataLength singleDataLength, boolean isEnd) {
 		if (Objects.nonNull(total) && Objects.nonNull(singleDataLength) && Objects.nonNull(singleDataLength.getDataLength())) {
-			BigDecimal singleTableLength   = singleDataLength.getDataLength();
+			BigDecimal singleTableLength = singleDataLength.getDataLength();
 			tableLength = tableLength.add(singleTableLength);
-//			BigDecimal singleTableProgress = singleTableLength.divide(total, RoundingMode.HALF_UP);
-//			progressVal = progressVal.add(singleTableProgress);
-//			BigDecimal progressVal = tableLength.divide(total, RoundingMode.HALF_UP).setScale(20, RoundingMode.HALF_UP).multiply(oneHundredPercent);
 			double progress = tableLength.doubleValue() / total.doubleValue() * 100;
-//			if (progressVal.compareTo(BigDecimal.ZERO) < 0) {
-//				progressVal = BigDecimal.ZERO;
-//			}
-//			if (progressVal.compareTo(oneHundredPercent) > 0 || isEnd) {
-//				progressVal = oneHundredPercent;
-//			}
-
 			if (progress < 0) {
 				progress = 0.0;
 			}
 			if (progress > 100 || isEnd) {
 				progress = 100.0;
 			}
-//			progressLabel.setText(progressVal.setScale(2, RoundingMode.HALF_UP).toPlainString() + "%");
+			if (progress >= 100 && !isEnd) {
+				progress = 99.9;
+			}
 			progressLabel.setText(new BigDecimal(progress).setScale(2, RoundingMode.HALF_UP).toPlainString() + "%");
 			progressBar.setValue((int) progress);
-//			progressLabel.updateUI();
 		}
 	}
 
-	private void updateProgressLabelValFromLine(BigDecimal total, SingleTableDataLength singleDataLength) {
+	private void updateProgressFromLine(BigDecimal total, SingleTableDataLength singleDataLength) {
 
 	}
 
-	private String log(String content, boolean isEnd) {
+	private void logger(String content, boolean isEnd) {
 		String log = String.format("[%s] - ", LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))) + content;
 		if (!isEnd) {
 			log += GlobalUtil.getLineSeparator();
 		}
-		return log;
+		this.eventLogPane.append(log);
 	}
 
 	/**
@@ -152,8 +141,12 @@ public class TransferOperator {
 			runnableFunction.run();
 		} catch (Throwable exception) {
 			exceptionHandler.accept(exception);
-			UiUtil.setButtonEnable(enableButtons, true);
+			enableButtons();
 		}
+	}
+
+	private void enableButtons() {
+		UiUtil.setButtonEnable(enableButtons, true);
 	}
 
 	public static void setOperator(JTextArea eventLogPane, JProgressBar progressBar, List<JButton> enableButtons, JLabel progressLabel) {

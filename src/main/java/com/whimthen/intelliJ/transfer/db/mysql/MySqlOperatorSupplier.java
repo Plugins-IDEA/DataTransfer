@@ -3,7 +3,7 @@ package com.whimthen.intelliJ.transfer.db.mysql;
 import com.intellij.database.model.DasTable;
 import com.intellij.database.psi.DbDataSource;
 import com.whimthen.intelliJ.transfer.db.DbOperator;
-import com.whimthen.intelliJ.transfer.db.TableInfoSupplier;
+import com.whimthen.intelliJ.transfer.db.OperatorSupplier;
 import com.whimthen.intelliJ.transfer.model.DataLength;
 import com.whimthen.intelliJ.transfer.model.SingleTableDataLength;
 import com.whimthen.intelliJ.transfer.utils.LambdaExUtil;
@@ -21,19 +21,29 @@ import java.util.stream.Collectors;
  * @version 1.0.0
  * @since 1.0.0
  */
-public class MySqlTableInfoSupplier implements TableInfoSupplier {
+public class MySqlOperatorSupplier extends OperatorSupplier {
+
+	private DbOperator dbOperator;
+	private final String SELECT_TOTAL_DATA_LENGTH = "SELECT sum(DATA_LENGTH) totalDataLength from information_schema.TABLES WHERE TABLE_NAME IN (?)";
+	private final String SELECT_TABLE_DATA_LENGTH = "SELECT TABLE_NAME tableName, AVG_ROW_LENGTH avgLength, DATA_LENGTH dataLength FROM information_schema.TABLES WHERE TABLE_NAME IN (?)";
+
+	public MySqlOperatorSupplier(DbDataSource dataSource) throws Exception {
+		super(dataSource);
+		getConnection().ifPresent(LambdaExUtil.rethrowConsumer(connection -> {
+			dbOperator = DbOperator.newInstance(connection);
+		}));
+	}
 
 	@Override
-	public DataLength getSizeFromTables(DbDataSource dataSource, List<? extends DasTable> tables) throws Exception {
+	public DataLength getSizeFromTables(List<? extends DasTable> tables) throws Exception {
 		if (Objects.isNull(tables) || tables.isEmpty()) {
 			throw new UnsupportedOperationException("Table not selected for conversion!");
 		}
 		DataLength dataLength = new DataLength();
-		getConnection(dataSource).ifPresent(LambdaExUtil.rethrowConsumer(connection -> {
+		getConnection().ifPresent(LambdaExUtil.rethrowConsumer(connection -> {
 			List<String> tableNames = tables.stream().map(DasTable::getName).collect(Collectors.toList());
-			DbOperator   dbOperator = DbOperator.newInstance(connection);
-			Map<String, Object> totalDataLengthMap = dbOperator.query("SELECT sum(DATA_LENGTH) totalDataLength from information_schema.TABLES WHERE TABLE_NAME IN (?)", tableNames);
-			Map<String, SingleTableDataLength> tableDataLengthMap = dbOperator.query("SELECT TABLE_NAME tableName, AVG_ROW_LENGTH avgLength, DATA_LENGTH dataLength FROM information_schema.TABLES WHERE TABLE_NAME IN (?)",
+			Map<String, BigDecimal> totalDataLengthMap = dbOperator.query(SELECT_TOTAL_DATA_LENGTH, tableNames);
+			Map<String, SingleTableDataLength> tableDataLengthMap = dbOperator.query(SELECT_TABLE_DATA_LENGTH,
 				LambdaExUtil.rethrowBiFunction((resultSet, metaData) -> {
 					Map<String, SingleTableDataLength> allTableDataLengthMap = new HashMap<>();
 					int                                columnCount           = metaData.getColumnCount();
@@ -59,10 +69,30 @@ public class MySqlTableInfoSupplier implements TableInfoSupplier {
 					}
 					return allTableDataLengthMap;
 				}), tableNames);
-			dataLength.setTotalLength(new BigDecimal(totalDataLengthMap.get("totalDataLength").toString()));
+			dataLength.setTotalLength(totalDataLengthMap.get("totalDataLength"));
 			dataLength.setTableLength(tableDataLengthMap);
 		}));
 		return dataLength;
+	}
+
+	@Override
+	public void createTable() throws Exception {
+		getConnection().ifPresent(LambdaExUtil.rethrowConsumer(connection -> {
+			dbOperator.execute("CREATE table test_idea(\n" +
+								   "    id int primary key auto_increment,\n" +
+								   "    name varchar(50) default null,\n" +
+								   "    age int(3) default 0,\n" +
+								   "    \n" +
+								   "    key idea_name(name)\n" +
+								   ")");
+		}));
+	}
+
+	@Override
+	public void selectDataBase(String dataBaseName) throws Exception {
+		getConnection().ifPresent(LambdaExUtil.rethrowConsumer(connection -> {
+			dbOperator.execute("USE " + dataBaseName);
+		}));
 	}
 
 }

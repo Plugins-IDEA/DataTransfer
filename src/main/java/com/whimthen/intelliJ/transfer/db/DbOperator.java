@@ -23,12 +23,21 @@ import java.util.regex.Pattern;
  */
 public class DbOperator {
 
-	private Pattern inCompile            = Pattern.compile("[i|I][n|N]\\s*\\((\\?,*\\s*)+\\)");
-	private Pattern questionMarkCompile  = Pattern.compile("\\?");
-	private Pattern leftBracketsCompile  = Pattern.compile("\\(");
-	private Pattern rightBracketsCompile = Pattern.compile("\\)");
+	private Pattern  inCompile            = Pattern.compile("[i|I][n|N]\\s*\\((\\?,*\\s*)+\\)");
+	private Pattern  questionMarkCompile  = Pattern.compile("\\?");
+	private Pattern  leftBracketsCompile  = Pattern.compile("\\(");
+	private Pattern  rightBracketsCompile = Pattern.compile("\\)");
+	private String[] noParameterSql       = new String[]{"CREATE", "USE", "ALTER", "DROP", "TRUNCATE"};
 
 	private Connection connection;
+
+	public int execute(String sql) throws SQLException {
+		return preparedParams(sql).executeUpdate();
+	}
+
+	public int execute(String sql, Object... params) throws SQLException {
+		return preparedParams(sql, params).executeUpdate();
+	}
 
 	public <T> T query(String querySql, BiFunction<ResultSet, ResultSetMetaData, T> function, Object... params) throws Exception {
 		PreparedStatement statement = preparedParams(querySql, params);
@@ -44,7 +53,7 @@ public class DbOperator {
 		return function.apply(resultSet, metaData);
 	}
 
-	public Map<String, Object> query(String querySql, Object... params) throws Exception {
+	public <T> Map<String, T> query(String querySql, Object... params) throws Exception {
 		PreparedStatement statement = preparedParams(querySql, params);
 		return resultHandler(statement);
 	}
@@ -65,6 +74,7 @@ public class DbOperator {
 	}
 
 	private PreparedStatement preparedParams(String sql, Object... params) throws SQLException {
+		sql = sql.trim();
 		Matcher              matcher  = inCompile.matcher(sql);
 		Map<Integer, String> indexMap = new HashMap<>();
 		if (matcher.find()) {
@@ -113,41 +123,52 @@ public class DbOperator {
 			}
 		}
 
-		PreparedStatement statement         = connection.prepareStatement(sql);
-		ParameterMetaData parameterMetaData = statement.getParameterMetaData();
-		int               parameterCount    = parameterMetaData.getParameterCount();
+		PreparedStatement statement = connection.prepareStatement(sql);
+		if (isNotStartWithDDL(sql)) {
+			ParameterMetaData parameterMetaData = statement.getParameterMetaData();
+			int               parameterCount    = parameterMetaData.getParameterCount();
 
-		List<Integer> allInIndex = getAllInIndex(indexMap);
-		for (int i = 1, j = 0; i < parameterCount; i++) {
-			int paramIndex = i - 1;
-			// 说明是 in 参数
-			if (allInIndex.contains(paramIndex)) {
-				Object param = params[j];
-				if (param instanceof Collection) {
-					int lastIndex = 0;
-					for (Object next : (Collection) param) {
-						statement.setObject(i, next);
-						if (lastIndex != ((Collection) param).size() - 1) {
-							i++;
+			List<Integer> allInIndex = getAllInIndex(indexMap);
+			for (int i = 1, j = 0; i < parameterCount; i++) {
+				int paramIndex = i - 1;
+				// 说明是 in 参数
+				if (allInIndex.contains(paramIndex)) {
+					Object param = params[j];
+					if (param instanceof Collection) {
+						int lastIndex = 0;
+						for (Object next : (Collection) param) {
+							statement.setObject(i, next);
+							if (lastIndex != ((Collection) param).size() - 1) {
+								i++;
+							}
+							lastIndex++;
 						}
-						lastIndex++;
-					}
-				} else if (param.getClass().isArray()) {
-					Object[] ps = (Object[]) param;
-					for (int i1 = 0; i1 < ps.length; i1++) {
-						statement.setObject(i, ps[i1]);
-						if (i1 != ps.length - 1) {
-							i++;
+					} else if (param.getClass().isArray()) {
+						Object[] ps = (Object[]) param;
+						for (int i1 = 0; i1 < ps.length; i1++) {
+							statement.setObject(i, ps[i1]);
+							if (i1 != ps.length - 1) {
+								i++;
+							}
 						}
 					}
+					j++;
+					continue;
 				}
+				statement.setObject(i, params[j]);
 				j++;
-				continue;
 			}
-			statement.setObject(i, params[j]);
-			j++;
 		}
 		return statement;
+	}
+
+	private boolean isNotStartWithDDL(String sql) {
+		for (String noP : noParameterSql) {
+			if (sql.startsWith(noP)) {
+				return false;
+			}
+		}
+		return true;
 	}
 
 	private List<Integer> getAllInIndex(Map<Integer, String> indexMap) {
@@ -192,16 +213,16 @@ public class DbOperator {
 		return this;
 	}
 
-	private Map<String, Object> resultHandler(PreparedStatement statement) throws SQLException {
-		Map<String, Object> resultMap   = new HashMap<>();
-		ResultSet           resultSet   = statement.executeQuery();
-		ResultSetMetaData   metaData    = statement.getMetaData();
-		int                 columnCount = metaData.getColumnCount();
+	private <T> Map<String, T> resultHandler(PreparedStatement statement) throws SQLException {
+		Map<String, T>    resultMap   = new HashMap<>();
+		ResultSet         resultSet   = statement.executeQuery();
+		ResultSetMetaData metaData    = statement.getMetaData();
+		int               columnCount = metaData.getColumnCount();
 		if (resultSet.next()) {
 			for (int i = 1; i <= columnCount; i++) {
 				String key   = metaData.getColumnLabel(i);
 				Object value = resultSet.getObject(i);
-				resultMap.put(key, value);
+				resultMap.put(key, (T) value);
 			}
 		}
 		return resultMap;

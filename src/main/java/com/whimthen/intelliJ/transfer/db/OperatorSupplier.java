@@ -20,13 +20,23 @@ import java.util.Optional;
  * @version 1.0.0
  * @since 1.0.0
  */
-public interface TableInfoSupplier {
+public abstract class OperatorSupplier {
 
-	Map<String, Connection> connectionMap = new HashMap<>();
+	private DbDataSource dataSource;
 
-	DataLength getSizeFromTables(DbDataSource dataSource, List<? extends DasTable> tables) throws Exception;
+	private static Map<String, Connection> connectionMap = new HashMap<>();
 
-	default Optional<Connection> getConnection(DbDataSource dataSource) throws Exception {
+	public OperatorSupplier(DbDataSource dataSource) {
+		this.dataSource = dataSource;
+	}
+
+	public abstract DataLength getSizeFromTables(List<? extends DasTable> tables) throws Exception;
+
+	public abstract void createTable() throws Exception;
+
+	public abstract void selectDataBase(String dataBaseName) throws Exception;
+
+	protected Optional<Connection> getConnection() throws Exception {
 		if (connectionMap.containsKey(dataSource.getName())) {
 			return Optional.of(connectionMap.get(dataSource.getName()));
 		}
