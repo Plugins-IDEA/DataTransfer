@@ -33,13 +33,14 @@ import java.util.function.Consumer;
  */
 public class TransferOperator {
 
-	private static TransferOperator    operator;
-	private        JTextArea           eventLogPane;
-	private        JProgressBar        progressBar;
-	private        Consumer<Throwable> exceptionHandler;
-	private        List<JButton>       enableButtons;
-	private        JLabel              progressLabel;
-	private        BigDecimal          tableLength = new BigDecimal(0);
+	private static TransferOperator operator;
+
+	private JTextArea           eventLogPane;
+	private JProgressBar        progressBar;
+	private Consumer<Throwable> exceptionHandler;
+	private List<JButton>       enableButtons;
+	private JLabel              progressLabel;
+	private BigDecimal          tableLength = new BigDecimal(0);
 
 	private TransferOperator(JTextArea eventLogPane, JProgressBar progressBar, List<JButton> enableButtons, JLabel progressLabel) {
 		this.eventLogPane = eventLogPane;
@@ -56,14 +57,14 @@ public class TransferOperator {
 	 */
 	public void transfer(TransferModel model) {
 		ex(() -> {
-			tableLength = BigDecimal.ZERO;
+			resetTableLength();
 			progressLabel.setText("0%");
 			progressBar.setIndeterminate(false);
 			progressBar.setValue(0);
 			List<? extends DasTable> tables = model.getTables();
 			if (Objects.nonNull(tables) && !tables.isEmpty()) {
 				DbDataSource     dataSource = DataSourceCache.get(model.getSourceConn());
-				OperatorSupplier supplier   = OperatorFactory.create(dataSource);
+				OperatorSupplier supplier   = OperatorFactory.createSupplier(dataSource);
 				// 所有表的数据量
 				DataLength dataLength = supplier.getSizeFromTables(tables);
 				supplier.selectDataBase(model.getTargetDb());
@@ -84,6 +85,7 @@ public class TransferOperator {
 												 "    key idea_name(name)\n" +
 												 ")");
 						logger("create table " + tableName + " successful!", false);
+						logger("create table " + tableName + " successful!", isEnd);
 						UiUtil.scrollDown(eventLogPane);
 						try {
 							TimeUnit.MILLISECONDS.sleep(10);
@@ -101,7 +103,7 @@ public class TransferOperator {
 		});
 	}
 
-	private void updateProgressFromTable(BigDecimal total, SingleTableDataLength singleDataLength, boolean isEnd) {
+	protected void updateProgressFromTable(BigDecimal total, SingleTableDataLength singleDataLength, boolean isEnd) {
 		if (Objects.nonNull(total) && Objects.nonNull(singleDataLength) && Objects.nonNull(singleDataLength.getDataLength())) {
 			BigDecimal singleTableLength = singleDataLength.getDataLength();
 			tableLength = tableLength.add(singleTableLength);
@@ -129,16 +131,16 @@ public class TransferOperator {
 		if (!isEnd) {
 			log += GlobalUtil.getLineSeparator();
 		}
-		this.eventLogPane.append(log);
+		eventLogPane.append(log);
 	}
 
 	/**
-	 * 测试输入的是否可以连接
+	 * 测试输入的是否可以连接 | 仅限MySql
 	 *
 	 * @param info 连接信息
 	 * @return true | false
 	 */
-	public boolean testConnection(DataBaseInfo info) {
+	public static boolean testConnection(DataBaseInfo info) {
 		return false;
 	}
 
@@ -170,6 +172,10 @@ public class TransferOperator {
 			throw new UnsupportedOperationException("Please setOperator first!");
 		}
 		return operator;
+	}
+
+	private void resetTableLength() {
+		this.tableLength = BigDecimal.ZERO;
 	}
 
 }

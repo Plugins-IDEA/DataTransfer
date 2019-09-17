@@ -6,6 +6,7 @@ import com.intellij.database.model.DasTable;
 import com.intellij.database.psi.DbDataSource;
 import com.intellij.database.util.DbImplUtil;
 import com.intellij.database.util.GuardedRef;
+import com.whimthen.intelliJ.transfer.model.DataBaseInfo;
 import com.whimthen.intelliJ.transfer.model.DataLength;
 
 import java.sql.Connection;

@@ -224,10 +224,12 @@ public class DataTransferDialogWrapper extends JDialog {
 			info.setUser(user);
 			info.setPassword(password);
 			info.setDatabase(database);
-			boolean isSuccess = TransferOperator.getInstance().testConnection(info);
+			info.setTableList(this.tableList);
+			boolean isSuccess = TransferOperator.testConnection(info);
 			// TODO 暂时弹窗提示测试连接是否成功, 后续改为按钮前面显示, 更为直观
 			if (!isSuccess) {
 				Messages.showErrorDialog("The Database connect fail", "Test Connection Result");
+				return;
 			} else {
 				Messages.showMessageDialog("Connect Successful!", "Test Connection Result", Messages.getInformationIcon());
 			}
@@ -245,11 +247,9 @@ public class DataTransferDialogWrapper extends JDialog {
 	 */
 	private ActionListener optionsStartListener() {
 		return (ActionEvent e) -> {
-			List<? extends DasTable> selectionTables = getSelectionTables(StartType.SELECT);
-			if (Objects.isNull(selectionTables) || selectionTables.isEmpty()) {
-				Messages.showWarningDialog("Please select transfer tables!", "Transfer Tables Is Empty");
-				return;
-			}
+			if (checkTargetDb(StartType.OPTIONS)) return;
+			List<? extends DasTable> selectionTables = getSelectionTables(StartType.OPTIONS);
+			if (checkSelectTables(selectionTables)) return;
 			List<JButton> actionButtons = getActionButtons();
 			UiUtil.setButtonEnable(actionButtons, false);
 			selectEventLogPanel();
@@ -258,12 +258,12 @@ public class DataTransferDialogWrapper extends JDialog {
 			model.setSourceHost(sourceHostTextField.getText());
 			model.setSourcePort(sourcePortTextField.getText());
 			model.setSourceUser(sourceUserTextField.getText());
-			model.setSourcePwd(sourcePwdTextField.getText());
+			model.setSourcePwd(PasswordUtil.password(sourcePwdTextField));
 			model.setSourceDb(sourceDbTextField.getText());
 			model.setTargetHost(targetHostTextField.getText());
 			model.setTargetPort(targetPortTextField.getText());
 			model.setTargetUser(targetUserTextField.getText());
-			model.setTargetPwd(targetPwdTextField.getText());
+			model.setTargetPwd(PasswordUtil.password(targetPwdTextField));
 			model.setTargetDb(targetDbTextField.getText());
 			model.setTables(selectionTables);
 			setModelOtherProperties(model);
@@ -290,11 +290,9 @@ public class DataTransferDialogWrapper extends JDialog {
 	 */
 	private ActionListener startListener() {
 		return (ActionEvent e) -> {
+			if (checkTargetDb(StartType.SELECT)) return;
 			List<? extends DasTable> selectionTables = getSelectionTables(StartType.SELECT);
-			if (Objects.isNull(selectionTables) || selectionTables.isEmpty()) {
-				Messages.showWarningDialog("Please select transfer tables!", "Transfer Tables Is Empty");
-				return;
-			}
+			if (checkSelectTables(selectionTables)) return;
 			List<JButton> actionButtons = getActionButtons();
 			UiUtil.setButtonEnable(actionButtons, false);
 			selectEventLogPanel();
@@ -308,6 +306,30 @@ public class DataTransferDialogWrapper extends JDialog {
 			setModelOtherProperties(model);
 			TransferOperator.getInstance().transfer(model);
 		};
+	}
+
+	private boolean checkTargetDb(StartType startType) {
+		boolean isEmpty = false;
+		if (StartType.SELECT.equals(startType)) {
+			if (StringUtils.isBlank((String) targetDbComboBox.getSelectedItem())) {
+				Messages.showWarningDialog("Please select target DataBase!", "DataBase not Select");
+				isEmpty = true;
+			}
+		} else {
+			if (StringUtils.isBlank(targetDbTextField.getText())) {
+				Messages.showWarningDialog("Please input target DataBase!", "DataBase Is Empty");
+				isEmpty = true;
+			}
+		}
+		return isEmpty;
+	}
+
+	private boolean checkSelectTables(List<? extends DasTable> tableList) {
+		if (Objects.isNull(tableList) || tableList.isEmpty()) {
+			Messages.showWarningDialog("Please select transfer tables!", "Transfer Tables Is Empty");
+			return true;
+		}
+		return false;
 	}
 
 	/**
@@ -551,15 +573,8 @@ public class DataTransferDialogWrapper extends JDialog {
 				tableList = Collections.emptyList();
 			}
 			this.tableList = tableList;
-		} else if (StartType.OPTIONS.equals(startType)) {
-			if (Objects.isNull(this.tableList)) {
-				tableList = Collections.emptyList();
-			} else {
-				tableList = this.tableList;
-			}
 		}
-//		tableTreeSelectionCount = tableList.size();
-		return tableList;
+		return this.tableList;
 	}
 
 	/**

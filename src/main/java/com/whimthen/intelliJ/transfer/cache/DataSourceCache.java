@@ -1,5 +1,6 @@
 package com.whimthen.intelliJ.transfer.cache;
 
+import com.intellij.database.Dbms;
 import com.intellij.database.model.DasNamespace;
 import com.intellij.database.model.DasTable;
 import com.intellij.database.psi.DbDataSource;
@@ -125,6 +126,10 @@ public class DataSourceCache {
 				scs -> tableList.addAll(new ArrayList<DasTable>(scs)));
 		});
 		return Optional.of(tableList);
+	}
+
+	public static Dbms getDbms(String dataSourceName) {
+		return get(dataSourceName).getDbms();
 	}
 
 }
