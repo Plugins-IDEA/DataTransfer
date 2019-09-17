@@ -58,6 +58,7 @@ public class TransferOperator {
 		ex(() -> {
 			tableLength = BigDecimal.ZERO;
 			progressLabel.setText("0%");
+			progressBar.setIndeterminate(false);
 			progressBar.setValue(0);
 			List<? extends DasTable> tables = model.getTables();
 			if (Objects.nonNull(tables) && !tables.isEmpty()) {
@@ -75,9 +76,14 @@ public class TransferOperator {
 						String   tableName = table.getName();
 						boolean  isEnd     = index == tables.size() - 1;
 
-						supplier.createTable();
+						supplier.createTable("CREATE table " + tableName + "(\n" +
+												 "    id int primary key auto_increment,\n" +
+												 "    name varchar(50) default null,\n" +
+												 "    age int(3) default 0,\n" +
+												 "    \n" +
+												 "    key idea_name(name)\n" +
+												 ")");
 						logger("create table " + tableName + " successful!", false);
-						logger(tableName, isEnd);
 						UiUtil.scrollDown(eventLogPane);
 						try {
 							TimeUnit.MILLISECONDS.sleep(10);

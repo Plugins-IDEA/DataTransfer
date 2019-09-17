@@ -32,7 +32,7 @@ public abstract class OperatorSupplier {
 
 	public abstract DataLength getSizeFromTables(List<? extends DasTable> tables) throws Exception;
 
-	public abstract void createTable() throws Exception;
+	public abstract void createTable(String createSql) throws Exception;
 
 	public abstract void selectDataBase(String dataBaseName) throws Exception;
 

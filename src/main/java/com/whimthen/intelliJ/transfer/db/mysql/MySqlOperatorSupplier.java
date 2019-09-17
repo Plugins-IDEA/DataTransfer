@@ -76,15 +76,9 @@ public class MySqlOperatorSupplier extends OperatorSupplier {
 	}
 
 	@Override
-	public void createTable() throws Exception {
+	public void createTable(String createSql) throws Exception {
 		getConnection().ifPresent(LambdaExUtil.rethrowConsumer(connection -> {
-			dbOperator.execute("CREATE table test_idea(\n" +
-								   "    id int primary key auto_increment,\n" +
-								   "    name varchar(50) default null,\n" +
-								   "    age int(3) default 0,\n" +
-								   "    \n" +
-								   "    key idea_name(name)\n" +
-								   ")");
+			dbOperator.execute(createSql);
 		}));
 	}
 

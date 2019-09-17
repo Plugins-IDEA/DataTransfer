@@ -31,10 +31,6 @@ public class DbOperator {
 
 	private Connection connection;
 
-	public int execute(String sql) throws SQLException {
-		return preparedParams(sql).executeUpdate();
-	}
-
 	public int execute(String sql, Object... params) throws SQLException {
 		return preparedParams(sql, params).executeUpdate();
 	}
@@ -46,38 +42,38 @@ public class DbOperator {
 		return function.apply(resultSet, metaData);
 	}
 
-	public <T> T query(String querySql, BiFunction<ResultSet, ResultSetMetaData, T> function) throws Exception {
-		PreparedStatement statement = connection.prepareStatement(querySql);
-		ResultSetMetaData metaData  = statement.getMetaData();
-		ResultSet         resultSet = statement.executeQuery();
-		return function.apply(resultSet, metaData);
-	}
+//	public <T> T query(String querySql, BiFunction<ResultSet, ResultSetMetaData, T> function) throws Exception {
+//		PreparedStatement statement = connection.prepareStatement(querySql);
+//		ResultSetMetaData metaData  = statement.getMetaData();
+//		ResultSet         resultSet = statement.executeQuery();
+//		return function.apply(resultSet, metaData);
+//	}
 
 	public <T> Map<String, T> query(String querySql, Object... params) throws Exception {
 		PreparedStatement statement = preparedParams(querySql, params);
 		return resultHandler(statement);
 	}
 
-	public Map<String, Object> query(String querySql) throws Exception {
-		PreparedStatement statement = connection.prepareStatement(querySql);
-		return resultHandler(statement);
-	}
+//	public Map<String, Object> query(String querySql) throws Exception {
+//		PreparedStatement statement = connection.prepareStatement(querySql);
+//		return resultHandler(statement);
+//	}
 
 	public List<Map<String, Object>> queryList(String querySql, Object... params) throws Exception {
 		PreparedStatement statement = preparedParams(querySql, params);
 		return resultListHandler(statement);
 	}
 
-	public List<Map<String, Object>> queryList(String querySql) throws Exception {
-		PreparedStatement statement = connection.prepareStatement(querySql);
-		return resultListHandler(statement);
-	}
+//	public List<Map<String, Object>> queryList(String querySql) throws Exception {
+//		PreparedStatement statement = connection.prepareStatement(querySql);
+//		return resultListHandler(statement);
+//	}
 
 	private PreparedStatement preparedParams(String sql, Object... params) throws SQLException {
 		sql = sql.trim();
 		Matcher              matcher  = inCompile.matcher(sql);
 		Map<Integer, String> indexMap = new HashMap<>();
-		if (matcher.find()) {
+		if (matcher.find() && params.length > 0) {
 			String group = matcher.group();
 			group = group.replaceAll("(\\?,*\\s*)+", "?");
 			sql = matcher.replaceAll(group);
@@ -124,7 +120,7 @@ public class DbOperator {
 		}
 
 		PreparedStatement statement = connection.prepareStatement(sql);
-		if (isNotStartWithDDL(sql)) {
+		if (isNotStartWithDDL(sql) && params.length > 0) {
 			ParameterMetaData parameterMetaData = statement.getParameterMetaData();
 			int               parameterCount    = parameterMetaData.getParameterCount();
 

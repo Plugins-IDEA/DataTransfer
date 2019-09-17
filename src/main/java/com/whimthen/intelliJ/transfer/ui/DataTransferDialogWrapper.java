@@ -605,14 +605,12 @@ public class DataTransferDialogWrapper extends JDialog {
 	}
 
 	private void onOK() {
-		String selectedItem  = (String) sourceConnComboBox.getSelectedItem();
-		Object selectedItem1 = targetConnComboBox.getSelectedItem();
-		Messages.showMessageDialog("source: " + selectedItem + ", target: " + selectedItem1, "Connection", Messages.getInformationIcon());
-		ThreadContainer.getInstance().shutdown();
-//		dispose();
+		ThreadContainer.getInstance(null).shutdown();
+		dispose();
 	}
 
 	private void onCancel() {
+		ThreadContainer.getInstance(null).shutdown();
 		dispose();
 	}
 
